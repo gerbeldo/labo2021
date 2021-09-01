@@ -1,0 +1,194 @@
+---
+title: An R Markdown document converted from "02.04 Rpart-GridSearch.ipynb"
+output: html_document
+---
+
+```{r}
+#limpio la memoria
+rm(list=ls())
+gc()
+
+#cargo librerias
+library("data.table")
+library("ROCR")
+library("rpart")
+library("rpart.plot")
+library("caret")
+```
+
+```{r}
+
+#Parametros entrada
+
+#kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
+kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+
+#Archivo con datos etiquetados para entrenamiento
+karchivo_entrada      <-  paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
+
+#Archivo con datos sin etiquetar para generar la predicción
+karchivo_predecir      <-  paste0(kcarpeta_datasets, "paquete_premium_202101.csv")
+
+#Formato para submit en Kaggle
+#karchivo_score      <-  "../input/uamds2020ldi1f1/Sample_201910_Fase_I.txt"
+
+#Separador de campos en archivos
+kcampos_separador     <-  "\t"
+
+#Campo que identifica las muestras
+kcampo_id             <-  "numero_de_cliente"
+
+#Campo que contiene la clase a estimar
+kclase_nomcampo       <-  "clase_ternaria"
+
+#Valor de interés
+kclase_valor_positivo <-  "BAJA+2"
+
+#Campos a borrar para el entrenamiento
+kcampos_a_borrar      <-  c(kcampo_id,kclase_nomcampo,"foto_mes")
+
+#Campo que contendrá a la variable objetivo generada
+kobjetivo             <-  "clase"
+
+#Identificación del modelo
+kmodelo               <-  "02-RPART"
+
+problema <- list()
+problema$prob_corte           <-      0.025
+problema$ganancia_TP     <-  48750 
+problema$ganancia_FP   <-   -1250
+
+kSeed <- 0
+
+#Establezco semilla aleatoria
+set.seed(kSeed)
+```
+
+```{r}
+#cargo los datos
+dataset <- fread(karchivo_entrada)
+
+#Para hacer pruebas rapidas puedo reducir el dataset a una fraccion
+#subsample <- sample(1:nrow(dataset), .1 * nrow(dataset))
+#dataset <- dataset[subsample,]
+```
+
+```{r}
+#Genero la clase
+dataset[,(kobjetivo) := as.integer(dataset[,..kclase_nomcampo] == kclase_valor_positivo)]
+
+#Limpio campos a borrar
+dataset[ ,  (kcampos_a_borrar) := NULL    ] 
+
+#Completo missings
+dataset[is.na(dataset)] <- 0
+```
+
+```{r}
+# generacion del modelo
+formula_obj  <-  formula(paste(kobjetivo, "~ ."))
+```
+
+```{r}
+train_rows <- createDataPartition(dataset$clase, p = .66, list = FALSE)
+
+#train_rows <- sample(1:nrow(dataset), .66 * nrow(dataset))
+train <- dataset[train_rows,]
+test <- dataset[-train_rows,]
+```
+
+```{r}
+fmetrica_ganancia_rpart  = function( probs, clases, pclase_valor_positivo, problema )
+{
+ 
+  return(  sum(    (probs > problema$prob_corte  ) * 
+                   ifelse( clases== pclase_valor_positivo, problema$ganancia_TP, problema$ganancia_FP )   
+              )
+         )
+}
+```
+
+```{r}
+modelo_rpart_ganancia = function( ptrain, ptest, pmaxdepth, pminbucket, pminsplit, pcp )
+{
+
+  modelo   <-  rpart(formula_obj,   data = ptrain,  xval=0, maxdepth=pmaxdepth, minbucket=pminbucket, minsplit=pminsplit, cp=pcp)
+
+  #aplico el modelo a datos nuevos
+  testing_prediccion  <- predict( modelo, ptest)
+    
+  return(fmetrica_ganancia_rpart(testing_prediccion,ptest[,..kobjetivo],1,problema))
+  
+}
+```
+
+```{r}
+linea <- 1
+
+max_gan <- -100000000
+
+for( vcp in c( -1, 0) ) 
+for( vmaxdepth in  c(4,8,14,16) )
+for( vminsplit in  c(2, 4, 8, 10, 15, 20, 30, 50, 100, 150, 200, 300, 400 ) )
+for( vminbucket  in  unique( as.integer(c(1,2,3,4,5,  vminsplit/10, vminsplit/5, vminsplit/3, vminsplit/2 )) ) )
+{ 
+
+    message(paste('Intentando',vcp,vminsplit,vminbucket,vmaxdepth))
+    res <- modelo_rpart_ganancia( train, test, 
+                                  pmaxdepth=vmaxdepth, pminbucket=vminbucket, pminsplit=vminsplit, pcp=vcp )
+
+  
+    if (res>max_gan) {
+      max_gan <- res
+      message(paste("Nuevo Maximo: ", res*3, vcp,vminsplit,vminbucket,vmaxdepth))
+      pcp<-vcp
+      pminsplit<-vminsplit
+      pminbucket<-vminbucket
+      pmaxdepth<-vmaxdepth
+  }
+  message(paste('Ganancia:',res*3,'Ganancia Maxima',max_gan*3))
+    
+  linea <- linea+1
+
+
+}
+```
+
+```{r}
+t0       <-  Sys.time()
+modelo   <-  rpart(formula_obj,   data = train,   xval=0, maxdepth=pmaxdepth, minbucket=pminbucket, minsplit=pminsplit, cp=pcp)
+t1       <-  Sys.time()
+
+tcorrida <-  as.numeric( t1 - t0, units = "secs")
+print( tcorrida)
+```
+
+```{r}
+#Detalles del modelo
+modelo
+```
+
+```{r}
+#Leo datos a estimar
+dataset_pred <- fread(karchivo_predecir)
+
+
+#Genero la clase
+#dataset_pred[,(kobjetivo) := as.integer(dataset[,..kclase_nomcampo] == kclase_valor_positivo)]
+
+#Limpio campos a borrar
+#dataset_pred[ ,  (kcampos_a_borrar) := NULL    ] 
+
+prediccion  <- predict( modelo, dataset_pred ) #aplico el modelo
+```
+
+```{r}
+dataset_pred[ , prob_baja := prediccion]
+dataset_pred[ , Predicted  := as.numeric(prob_baja > 0.025) ]
+
+entrega  <- dataset_pred[   , list(numero_de_cliente, Predicted) ] #genero la salida
+
+#genero el archivo para Kaggle
+fwrite( entrega, file="./salida_rpart_grid.csv", sep="," )
+```
+
