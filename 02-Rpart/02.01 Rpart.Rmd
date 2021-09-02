@@ -20,7 +20,8 @@ library("rpart.plot")
 #Parametros entrada
 
 #kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
-kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+#kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+kcarpeta_datasets <- "../../datasets_ori/"
 
 #Archivo con datos etiquetados para entrenamiento
 karchivo_entrada      <-  paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
@@ -59,7 +60,7 @@ kTPGain               <-  48750
 kFPGain               <-  -1250
 
 #Establezco semilla aleatoria
-set.seed(1)
+set.seed(10123987)
 
 ```
 
