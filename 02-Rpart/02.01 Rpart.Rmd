@@ -4,11 +4,11 @@ output: html_document
 ---
 
 ```{r}
-#limpio la memoria
-rm(list=ls())
+# limpio la memoria
+rm(list = ls())
 gc()
 
-#cargo librerias
+# cargo librerias
 library("data.table")
 library("ROCR")
 library("rpart")
@@ -16,92 +16,90 @@ library("rpart.plot")
 ```
 
 ```{r}
+# Parametros entrada
 
-#Parametros entrada
-
-#kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
-#kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+# kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
+# kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
 kcarpeta_datasets <- "../../datasets_ori/"
 
-#Archivo con datos etiquetados para entrenamiento
-karchivo_entrada      <-  paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
+# Archivo con datos etiquetados para entrenamiento
+karchivo_entrada <- paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
 
-#Archivo con datos sin etiquetar para generar la predicción
-karchivo_predecir      <-  paste0(kcarpeta_datasets, "paquete_premium_202101.csv")
+# Archivo con datos sin etiquetar para generar la predicción
+karchivo_predecir <- paste0(kcarpeta_datasets, "paquete_premium_202101.csv")
 
-#Formato para submit en Kaggle
-#karchivo_score      <-  "../input/uamds2020ldi1f1/Sample_201910_Fase_I.txt"
+# Formato para submit en Kaggle
+# karchivo_score      <-  "../input/uamds2020ldi1f1/Sample_201910_Fase_I.txt"
 
-#Separador de campos en archivos
-kcampos_separador     <-  "\t"
+# Separador de campos en archivos
+kcampos_separador <- "\t"
 
-#Campo que identifica las muestras
-kcampo_id             <-  "numero_de_cliente"
+# Campo que identifica las muestras
+kcampo_id <- "numero_de_cliente"
 
-#Campo que contiene la clase a estimar
-kclase_nomcampo       <-  "clase_ternaria"
+# Campo que contiene la clase a estimar
+kclase_nomcampo <- "clase_ternaria"
 
-#Valor de interés
-kclase_valor_positivo <-  "BAJA+2"
+# Valor de interés
+kclase_valor_positivo <- "BAJA+2"
 
-#Campos a borrar para el entrenamiento
-kcampos_a_borrar      <-  c(kcampo_id,kclase_nomcampo,"foto_mes")
+# Campos a borrar para el entrenamiento
+kcampos_a_borrar <- c(kcampo_id, kclase_nomcampo, "foto_mes")
 
-#Campo que contendrá a la variable objetivo generada
-kobjetivo             <-  "clase"
+# Campo que contendrá a la variable objetivo generada
+kobjetivo <- "clase"
 
-#Identificación del modelo
-kmodelo               <-  "02-RPART"
+# Identificación del modelo
+kmodelo <- "02-RPART"
 
-#Ganancia por TP
-kTPGain               <-  48750
+# Ganancia por TP
+kTPGain <- 48750
 
-#Pérdida por FP
-kFPGain               <-  -1250
+# Pérdida por FP
+kFPGain <- -1250
 
-#Establezco semilla aleatoria
+# Establezco semilla aleatoria
 set.seed(10123987)
-
 ```
 
 ```{r}
-#cargo los datos
+# cargo los datos
 dataset <- fread(karchivo_entrada)
 
-#Para hacer pruebas rapidas puedo reducir el dataset a una fraccion
-#subsample <- sample(1:nrow(dataset), .1 * nrow(dataset))
-#dataset <- dataset[subsample,]
+# Para hacer pruebas rapidas puedo reducir el dataset a una fraccion
+# subsample <- sample(1:nrow(dataset), .1 * nrow(dataset))
+# dataset <- dataset[subsample,]
 ```
 
 ```{r}
-#Genero la clase
-dataset[,(kobjetivo) := as.integer(dataset[,..kclase_nomcampo] == kclase_valor_positivo)]
+# Genero la clase
+dataset[, (kobjetivo) := as.integer(dataset[, ..kclase_nomcampo] == kclase_valor_positivo)]
 
-#Limpio campos a borrar
-dataset[ ,  (kcampos_a_borrar) := NULL    ] 
+# Limpio campos a borrar
+dataset[, (kcampos_a_borrar) := NULL]
 
-#Completo missings
+# Completo missings
 dataset[is.na(dataset)] <- 0
 ```
 
 ```{r}
 # generacion del modelo
-formula  <-  formula(paste(kobjetivo, "~ ."))
+formula <- formula(paste(kobjetivo, "~ ."))
 ```
 
 ```{r}
-#Genero el modelo sobre dataset completo
+# Genero el modelo sobre dataset completo
 
-t0       <-  Sys.time()
-modelo   <-  rpart(formula,   data = dataset,  maxdepth=1, cp = 0, xval = 0)
-t1       <-  Sys.time()
+t0 <- Sys.time()
+modelo <- rpart(formula, data = dataset, maxdepth = 1, cp = 0, xval = 0)
+t1 <- Sys.time()
 
-tcorrida <-  as.numeric( t1 - t0, units = "secs")
-print( tcorrida)
+tcorrida <- as.numeric(t1 - t0, units = "secs")
+print(tcorrida)
 
-#Arbol generado
-options(repr.plot.width=15, repr.plot.height=15)
-prp(modelo, extra=101, digits=5, branch=1, type=4, varlen=0, faclen=0, tweak=1.3)
+# Arbol generado
+options(repr.plot.width = 15, repr.plot.height = 15)
+prp(modelo, extra = 101, digits = 5, branch = 1, type = 4, varlen = 0, faclen = 0, tweak = 1.3)
 ```
 
 ```{r}
@@ -109,26 +107,26 @@ modelo
 ```
 
 ```{r}
-#Leo datos a estimar
+# Leo datos a estimar
 dataset_pred <- fread(karchivo_predecir)
 
 
-#Genero la clase
-#dataset_pred[,(kobjetivo) := as.integer(dataset[,..kclase_nomcampo] == kclase_valor_positivo)]
+# Genero la clase
+# dataset_pred[,(kobjetivo) := as.integer(dataset[,..kclase_nomcampo] == kclase_valor_positivo)]
 
-#Limpio campos a borrar
-#dataset_pred[ ,  (kcampos_a_borrar) := NULL    ] 
+# Limpio campos a borrar
+# dataset_pred[ ,  (kcampos_a_borrar) := NULL    ]
 
-prediccion  <- predict( modelo, dataset_pred ) #aplico el modelo
+prediccion <- predict(modelo, dataset_pred) # aplico el modelo
 ```
 
 ```{r}
-dataset_pred[ , prob_baja := prediccion]
-dataset_pred[ , Predicted  := as.numeric(prob_baja > 0.025) ]
+dataset_pred[, prob_baja := prediccion]
+dataset_pred[, Predicted := as.numeric(prob_baja > 0.025)]
 
-entrega  <- dataset_pred[   , list(numero_de_cliente, Predicted) ] #genero la salida
+entrega <- dataset_pred[, list(numero_de_cliente, Predicted)] # genero la salida
 
-#genero el archivo para Kaggle
-fwrite( entrega, file="./salida_rpart_maxdepth.csv", sep="," )
+# genero el archivo para Kaggle
+fwrite(entrega, file = "./salida_rpart_maxdepth.csv", sep = ",")
 ```
 
