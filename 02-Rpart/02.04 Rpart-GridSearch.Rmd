@@ -4,11 +4,11 @@ output: html_document
 ---
 
 ```{r}
-#limpio la memoria
-rm(list=ls())
+# limpio la memoria
+rm(list = ls())
 gc()
 
-#cargo librerias
+# cargo librerias
 library("data.table")
 library("ROCR")
 library("rpart")
@@ -21,7 +21,8 @@ library("caret")
 #Parametros entrada
 
 #kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
-kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+#kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+kcarpeta_datasets <- "../../datasets_ori/"
 
 #Archivo con datos etiquetados para entrenamiento
 karchivo_entrada      <-  paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
@@ -58,7 +59,7 @@ problema$prob_corte           <-      0.025
 problema$ganancia_TP     <-  48750 
 problema$ganancia_FP   <-   -1250
 
-kSeed <- 0
+kSeed <- 90135017
 
 #Establezco semilla aleatoria
 set.seed(kSeed)
@@ -126,7 +127,7 @@ modelo_rpart_ganancia = function( ptrain, ptest, pmaxdepth, pminbucket, pminspli
 linea <- 1
 
 max_gan <- -100000000
-
+tictoc::tic()
 for( vcp in c( -1, 0) ) 
 for( vmaxdepth in  c(4,8,14,16) )
 for( vminsplit in  c(2, 4, 8, 10, 15, 20, 30, 50, 100, 150, 200, 300, 400 ) )
@@ -152,6 +153,10 @@ for( vminbucket  in  unique( as.integer(c(1,2,3,4,5,  vminsplit/10, vminsplit/5,
 
 
 }
+tictoc::toc()
+beepr::beep("coin")
+
+#> 6100 segundos
 ```
 
 ```{r}
