@@ -21,7 +21,8 @@ library("caret")
 #Parametros entrada
 
 #kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
-kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+#kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+kcarpeta_datasets <- "../../datasets_ori/"
 
 #Archivo con datos etiquetados para entrenamiento
 karchivo_entrada      <-  paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
@@ -59,7 +60,7 @@ kTPGain               <-  48750
 #Pérdida por FP
 kFPGain               <-  -1250
 
-kSeed <- 0
+kSeed <- 7191121
 
 
 #Establezco semilla aleatoria
@@ -93,6 +94,7 @@ formula  <-  formula(paste(kobjetivo, "~ ."))
 ```
 
 ```{r}
+
 train_rows <- createDataPartition(dataset$clase, p = .66, list = FALSE)
 
 #train_rows <- sample(1:nrow(dataset), .66 * nrow(dataset))
