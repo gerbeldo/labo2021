@@ -158,6 +158,96 @@ beepr::beep("coin")
 # > 6100 segundos
 ```
 
+
+Defino funciones que no usen data.table, para facilitar corrida en paralelo.
+
+```{r}
+fmetrica_ganancia_rpart_par <- function(probs, clases, pclase_valor_positivo, problema) {
+  return(sum((probs > problema$prob_corte) *
+    ifelse(clases == pclase_valor_positivo,
+      problema$ganancia_TP,
+      problema$ganancia_FP
+    )))
+}
+
+modelo_rpart_ganancia_par <- function(ptrain, ptest, pmaxdepth, pminbucket, pminsplit, pcp) {
+  modelo <- rpart(formula_obj,
+    data = ptrain,
+    xval = 0,
+    maxdepth = pmaxdepth,
+    minbucket = pminbucket,
+    minsplit = pminsplit,
+    cp = pcp
+  )
+
+  # aplico el modelo a datos nuevos
+  testing_prediccion <- predict(modelo, ptest)
+
+  return(fmetrica_ganancia_rpart_par(testing_prediccion, ptest$clase, 1, problema))
+}
+```
+
+Genero grilla de parametros
+
+```{r}
+gcp <- c(-1, 0)
+gmaxdepth <- c(4, 8, 14, 16)
+gminsplit <- c(2, 4, 8, 10, 15, 20, 30, 50, 100, 150, 200, 300, 400)
+gminbucket <- unique(as.integer(c(1, 2, 3, 4, 5, gminsplit / 10, gminsplit / 5, gminsplit / 3, gminsplit / 2)))
+
+# gcp <- c(-1)
+# gmaxdepth <- c(4)
+# gminsplit <- c(2)
+# gminbucket <- unique(as.integer(c(1, 2, 3)))
+
+tree_grid <- expand.grid(
+  cp = gcp,
+  maxdepth = gmaxdepth,
+  minsplit = gminsplit,
+  minbucket = gminbucket
+)
+                         
+```
+
+```{r}
+library(doParallel)
+#create and register cluster
+#cn <- parallel::detectCores() - 1
+cl <- parallel::makeCluster(1)
+doParallel::registerDoParallel(cl)
+
+tictoc::tic()
+tune_gain <- foreach(
+  cp = tree_grid$cp,
+  maxdepth = tree_grid$maxdepth,
+  minsplit = tree_grid$minsplit,
+  minbucket = tree_grid$minbucket,
+  .combine = "c",
+  .packages = c("rpart")
+) %dopar% {
+
+  # fit model
+  m_i <- modelo_rpart_ganancia_par(train,
+    test,
+    pcp = cp,
+    pmaxdepth = maxdepth,
+    pminsplit = minsplit,
+    pminbucket = minbucket
+  )
+
+  # return gain
+  return(m_i)
+}
+tictoc::toc()
+stopImplicitCluster()
+stopCluster(cl)
+
+beepr::beep("coin")
+
+# add gain column
+tree_grid$gain <- tune_gain
+```
+
 ```{r}
 t0 <- Sys.time()
 modelo <- rpart(formula_obj,
