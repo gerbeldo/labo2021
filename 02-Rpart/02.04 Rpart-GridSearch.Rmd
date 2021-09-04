@@ -212,8 +212,8 @@ tree_grid <- expand.grid(
 ```{r}
 library(doParallel)
 #create and register cluster
-#cn <- parallel::detectCores() - 1
-cl <- parallel::makeCluster(1)
+cn <- parallel::detectCores(logical = FALSE)
+cl <- parallel::makeCluster(cn)
 doParallel::registerDoParallel(cl)
 
 tictoc::tic()
@@ -246,6 +246,13 @@ beepr::beep("coin")
 
 # add gain column
 tree_grid$gain <- tune_gain
+
+# graficando ganancia en funcion de parametros
+ggplot(tree_grid, aes(minbucket, gain, color = minsplit, group = minsplit)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(maxdepth ~ cp) +
+  scale_color_viridis_c()
 ```
 
 ```{r}
