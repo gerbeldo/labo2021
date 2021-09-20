@@ -1,0 +1,300 @@
+---
+title: "title"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+# infraestructura
+
+
+```{r}
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(broom)
+library(ggplot2)
+```
+
+```{r}
+set.seed(437626)
+```
+
+genero un dataframe porque me es mas comodo
+
+```{r}
+mejor <- 0.7
+peloton <- (501:599) / 1000
+jugadores <- c(mejor, peloton)
+
+d <- tibble(clase = c("mejor", rep("peloton", 99)), prob = jugadores)
+```
+
+# funciones
+
+Una funcion para inicializar las variables necesarias
+
+```{r}
+init <- function(jugadores) {
+  # inicializa tibble con variables necesarias.
+  # fase = numero de fase
+  # qc = quality control (TRUE si sobrevive en la fase, FALSE si no)
+  jugadores$fase <- 0
+  jugadores$qc <- T
+  jugadores$tiro_n <- NA
+  jugadores$shot <- NA
+  jugadores
+}
+```
+
+```{r}
+encestado <- function(prob, tiros) {
+# genera tibble con numero (id) de tiro y boolean si encesta  
+  tibble(tiro_n = 1:tiros,
+         shot = runif(tiros) < prob)
+}
+
+max_tiro <- function(jugadores) {
+  # devuelve la cantidad de tiros lanzados por jugador en la fase anterior
+  # devuelve 0 si estamos en fase 0
+  suppressWarnings(
+    if (is.infinite(max(jugadores$tiro_n, na.rm = T))) {
+      0
+    } else {
+      max(jugadores$tiro_n, na.rm = T)
+    }
+  )
+}
+
+```
+
+```{r}
+n_tiros <- function(jugadores, tiros) {
+  # actualiza tabla de jugadores con los tiros de la siguiente fase
+  max_fase <- max(jugadores$fase)
+  max_tiro_n <- max_tiro(jugadores)
+
+  jugadores %>% 
+    select(clase, prob, fase, qc) %>% 
+    filter(qc) %>%
+    distinct(prob, .keep_all = T) %>% 
+    mutate(shots = map2(prob, tiros, encestado),
+           fase = max_fase + 1) %>% 
+    unnest(shots) %>% 
+    mutate(tiro_n = tiro_n + max_tiro_n) -> jugadores_temp
+  
+  bind_rows(jugadores, jugadores_temp)
+}
+
+tiros_totales <- function(jugadores) {
+  # devuelve numero de tiros acumulados
+  filter(jugadores, fase != 0) %>% 
+    nrow()
+}
+
+contains_mejor <- function(vec) {
+  "mejor" %in% vec
+}
+
+qc_filter <- function(data, filtro) {
+  mutate(data, qc = {{filtro}} )
+}
+
+```
+
+
+# lm de tiros acumulados
+
+Exploracion
+
+```{r}
+
+lm_fit <- function(data){
+  lm(shots_cumsum ~ tiro_n, data = data)
+}
+
+d %>% 
+  init() %>% 
+  n_tiros(140) %>% 
+  filter(fase != 0) %>%
+  group_by(prob) %>% 
+  mutate(roll_mean = cummean(shot),
+         shots_cumsum = cumsum(shot),
+         roll_median = cumstats::cummedian(roll_mean)) %>% 
+  ungroup() %>% 
+  select(prob, tiro_n, shots_cumsum) %>% 
+  group_by(prob) %>% 
+  nest() %>% 
+  mutate(fit = map(data, lm_fit),
+         params = map(fit, tidy)) %>% 
+  unnest(params) %>% filter(term == "tiro_n") %>% 
+  ggplot(aes(prob, estimate)) + geom_point() + geom_hline(aes(yintercept = median(estimate))) +
+  geom_hline(aes(yintercept = quantile(estimate, 0.75)))
+  
+  
+```
+
+Empaquetado para iterar
+
+```{r}
+shot_cumsum <- function(data) {
+  data %>% 
+    group_by(prob) %>%
+    mutate(shots_cumsum = cumsum(shot))
+}
+```
+
+```{r}
+cazatalentos_lm_lean <- function(jugadores, tiros, quant_filter) {
+  
+  # tiros en nueva fase. solo tiran los que quedan
+  jugadores %>% 
+    n_tiros(tiros) %>% 
+    filter(fase != 0) %>% 
+    select(clase, prob, fase, qc, tiro_n, shot) -> new_shots
+  
+  new_shots %>% 
+    shot_cumsum() %>% 
+    group_by(prob, clase) %>%
+    nest() %>%
+    mutate(
+      fit = map(data, lm_fit),
+      params = map(fit, tidy)
+    ) %>%
+    select(prob, clase, params) %>%
+    unnest(params) %>%
+    filter(term == "tiro_n") %>%
+    select(prob, clase, estimate) %>% 
+    ungroup()-> fit_estimate
+  
+  res <- left_join(new_shots, fit_estimate, by = c("clase", "prob")) %>% qc_filter(estimate > quantile(estimate, quant_filter))
+  
+  res
+}
+```
+
+Esto es bastante lento. Las operaciones sobre el dataframe son costosas.
+
+```{r}
+
+sim <- function(data) {
+  cazatalentos_lm_lean(d_init, 50, 0.3) %>%
+    cazatalentos_lm_lean(50, 0.5) %>%
+    cazatalentos_lm_lean(50, 0.7) %>%
+    cazatalentos_lm_lean(160, 0.90) %>%
+    filter(qc) %>%
+    distinct(prob, estimate) %>%
+    filter(estimate == max(estimate)) %>%
+    pull(prob)
+}
+
+tibble(rep = 1:100, ganador = map(rep, ~ sim(d_init))) %>%
+  mutate(ganador2 = ganador == 0.7) %>%
+  select(ganador2) %>%
+  table()
+
+```
+
+
+
+```{r}
+cazatalentos_lm <- function(jugadores, tiros) {
+  
+  jugadores %>%
+    select(prob, clase, fase, qc, tiro_n, shot) %>% 
+    filter(qc) %>% 
+    n_tiros(tiros) %>%
+    filter(fase != 0) -> jugadores_shots
+  
+  jugadores_shots %>% 
+    group_by(prob) %>%
+    mutate(shots_cumsum = cumsum(shot)) %>%
+    select(prob, clase, tiro_n, shots_cumsum) %>%
+    group_by(prob, clase) %>%
+    nest() %>%
+    mutate(
+      fit = map(data, lm_fit),
+      params = map(fit, tidy)
+    ) %>%
+    select(prob, clase, params) %>%
+    unnest(params) %>%
+    filter(term == "tiro_n") %>%
+    select(prob, clase, estimate) %>% 
+    ungroup() -> fit_estimate
+  
+  res <- left_join(jugadores_shots, fit_estimate, by = c("clase", "prob")) %>%
+    qc_filter(estimate > median(estimate))
+  
+  #bind_rows(jugadores, res)
+  #fit_estimate %>% filter(estimate > median(estimate)) %>% pull(clase) %>% unique()
+  res
+}
+
+
+tictoc::tic()
+tibble(rep = 1:100, ganador = map_lgl(rep, ~ contains_mejor(cazatalentos_lm(d_init, 140)))) %>%
+  select(ganador) %>%
+  table()
+tictoc::toc()
+```
+
+
+
+
+## fase 2
+
+```{r}
+d_init %>% cazatalentos_lm(80) #%>% cazatalentos_lm(50)
+```
+
+
+
+# autocorrelacion
+
+Miro que pasa con la autocorrelacion en la media movil de cada jugador a medida que
+aumenta la cantidad de tiros. Espero que a medida que aumenta el lag, disminuya, pero 
+a tiros tendiendo a infinito deberia aumentar? Es decir, la media deberia dejar de moverse.
+
+En efecto, aumentando el numero de tiros, aumenta la autocorrelacion (mirar escala!).
+Y se separa muchisimo el mejor del resto... probablemente me estoy perdiendo de 
+algun detalle teorico, quiza depende de alguna forma de la magnitud de la media?
+
+NO! las probabilidades del peloton estan muy cerca del azar! 
+
+```{r}
+d %>%
+  init() %>%
+  n_tiros(1000) %>%
+  filter(!is.na(shot)) %>%
+  mutate(roll_mean = cummean(shot)) %>%
+  select(prob, clase, roll_mean) %>%
+  nest_by(prob, clase) %>%
+  mutate(acfres = map(data, ~ broom::tidy(acf(.x, lag.max = 1000, type = "correlation", plot = F)))) %>%
+  unnest(acfres) %>%
+  ggplot(aes(lag, acf, group = prob, color = clase)) +
+  geom_line()
+
+d %>%
+  init() %>%
+  n_tiros(140) %>%
+  filter(!is.na(shot)) %>%
+  mutate(roll_mean = cummean(shot)) %>%
+  select(prob, clase, roll_mean) %>%
+  nest_by(prob, clase) %>%
+  mutate(acfres = map(data, ~ broom::tidy(acf(.x, lag.max = 140, type = "correlation", plot = F)))) %>%
+  unnest(acfres) %>%
+  ggplot(aes(lag, acf, group = prob, color = clase)) +
+  geom_line() + facet_grid(~clase, scales = "free")
+
+```
+

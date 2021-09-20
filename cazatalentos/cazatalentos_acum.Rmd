@@ -1,0 +1,327 @@
+---
+title: "title"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+# infraestructura
+
+Uso tidyverse *porque me gusta*
+```{r}
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(broom)
+library(ggplot2)
+```
+
+```{r}
+set.seed(437626)
+```
+
+genero un dataframe porque me es mas comodo
+
+```{r}
+mejor <- 0.7
+peloton <- (501:599) / 1000
+jugadores <- c(mejor, peloton)
+
+d <- tibble(clase = c("mejor", rep("peloton", 99)), prob = jugadores)
+```
+
+# funciones
+
+Una funcion para inicializar las variables necesarias
+
+```{r}
+init <- function(jugadores) {
+  # inicializa tibble con variables necesarias.
+  # fase = numero de fase
+  # qc = quality control (TRUE si sobrevive en la fase, FALSE si no)
+  jugadores$fase <- 0
+  jugadores$qc <- T
+  jugadores$tiro_n <- NA
+  jugadores$shot <- NA
+  jugadores
+}
+```
+
+```{r}
+encestado <- function(prob, tiros) {
+# genera tibble con numero (id) de tiro y boolean si encesta  
+  tibble(tiro_n = 1:tiros,
+         shot = runif(tiros) < prob)
+}
+
+max_tiro <- function(jugadores) {
+  # devuelve la cantidad de tiros lanzados por jugador en la fase anterior
+  # devuelve 0 si estamos en fase 0
+  suppressWarnings(
+    if (is.infinite(max(jugadores$tiro_n, na.rm = T))) {
+      0
+    } else {
+      max(jugadores$tiro_n, na.rm = T)
+    }
+  )
+}
+
+```
+
+```{r}
+n_tiros <- function(jugadores, tiros) {
+  # actualiza tabla de jugadores con los tiros de la siguiente fase
+  max_fase <- max(jugadores$fase)
+  max_tiro_n <- max_tiro(jugadores)
+
+  jugadores %>% 
+    select(clase, prob, fase, qc) %>% 
+    filter(qc) %>%
+    distinct(prob, .keep_all = T) %>% 
+    mutate(shots = map2(prob, tiros, encestado),
+           fase = max_fase + 1) %>% 
+    unnest(shots) %>% 
+    mutate(tiro_n = tiro_n + max_tiro_n) -> jugadores_temp
+  
+  bind_rows(jugadores, jugadores_temp)
+}
+
+tiros_totales <- function(jugadores) {
+  # devuelve numero de tiros acumulados
+  filter(jugadores, fase != 0) %>% 
+    nrow()
+}
+
+# contains_mejor <- function(vec) {
+#   "mejor" %in% vec
+# }
+
+qc_filter <- function(.data, filtro) {
+  # para eliminar jugadores pero no perder historia de encestes
+  mutate(.data, qc = qc & {{filtro}} )
+}
+
+shot_cumsum <- function(data) {
+  data %>% 
+    group_by(prob) %>%
+    mutate(shots_cumsum = cumsum(shot))
+}
+
+```
+
+
+```{r}
+d %>% 
+  init() %>% 
+  n_tiros(5) %>% 
+  filter(fase != 0) %>%
+  group_by(prob) %>% 
+  mutate(roll_mean = cumsum(shot),
+         shots_cumsum = cumstats::cummedian(roll_mean)) %>% 
+  ggplot(aes(tiro_n, shots_cumsum, color = clase, group = prob)) + geom_line()
+```
+
+```{r}
+cazatalentos_acum <- function(jugadores, tiros, cutoff) {
+  
+  # tiros en nueva fase. solo tiran los que quedan
+  jugadores %>% 
+    n_tiros(tiros) %>% 
+    filter(fase != 0) %>% 
+    select(clase, prob, fase, qc, tiro_n, shot) -> new_shots
+  
+  new_shots %>% 
+    shot_cumsum() %>% 
+    group_by(prob) %>% 
+    mutate(max_shot = max(shots_cumsum)) %>% 
+    ungroup() %>%
+    qc_filter(max_shot > quantile(max_shot, cutoff)) %>% 
+    filter(qc)
+    
+}
+
+fun <- function(d_init){
+cazatalentos_acum(d_init, 50, 0.3) %>%
+  cazatalentos_acum(50, 0.5) %>%
+  cazatalentos_acum(50, 0.6) %>%
+  cazatalentos_acum(50, 0.9) %>%
+  cazatalentos_acum(400, 0.95) %>% 
+  filter(qc) %>% distinct(clase, prob, max_shot) %>% pull(clase) -> res
+  
+  if (length(res) == 0) {"none"} else {res}
+}
+
+tictoc::tic()
+tibble(rep = 1:1000, ganador = map_chr(rep, ~fun(d_init))) %>% select(ganador) %>% table()
+tictoc::toc()
+```
+
+```{r}
+
+d %>% 
+  init() %>% 
+  n_tiros(139) %>% 
+  filter(fase != 0) %>%
+  group_by(prob) %>% 
+  mutate(shots_cumsum = cumsum(shot)) %>% 
+  ganador_tiro_n() %>% select(winner, tiro_n) %>% distinct()
+  
+
+```
+
+
+```{r}
+ganador_tiro_n <- function(data) {
+  data %>% 
+    group_by(tiro_n) %>% 
+    mutate(max_n = max(shots_cumsum),
+           winner = sample(prob[shots_cumsum == max_n], 1))
+}
+```
+
+```{r}
+
+fun2 <- function(jugadores) {
+  
+  jugadores <- n_tiros(jugadores,5)
+  players_left <- jugadores %>%  filter(qc) %>% distinct(prob) %>% nrow()
+  
+  while (players_left > 1 & nrow(jugadores) < 13950) {
+    # print(players_left)
+    # print(nrow(jugadores))
+    
+    jugadores %>%
+      filter(fase != 0) %>%
+      n_tiros(1) %>%
+      ungroup() %>% 
+      mutate(global_avg = mean(qc & shot)) %>%
+      group_by(prob) %>%
+      mutate(player_avg = mean(qc & shot)) %>% 
+      qc_filter( (player_avg > median(global_avg) )) %>% 
+      ungroup() -> jugadores
+    
+    players_left <- jugadores %>% filter(qc) %>% distinct(prob) %>% nrow()
+    
+  }
+  ganador <- jugadores %>% filter(qc) %>% distinct(prob)
+  tabla <- jugadores %>% filter(fase != 0) 
+  tiros_total <- tabla %>% nrow()
+    
+  
+  if (nrow(ganador) > 1) {
+    tabla %>%
+      filter(qc) %>%
+      filter(player_avg == max(player_avg)) %>% 
+      distinct(prob) -> ganador
+  }
+  
+  list(ganador = ganador, tiros_total = tiros_total, tabla = tabla)
+  #ganador$prob
+}
+
+  
+
+tictoc::tic()
+l <- fun2(init(d))
+tictoc::toc()
+beepr::beep("coin")
+
+tictoc::tic()
+tibble(rep = 1:100, ganador = map_dbl(rep, ~fun2(d_init))) %>% select(ganador) %>% table()
+tictoc::toc()
+
+```
+
+```{r}
+
+tab <- l$tabla
+
+
+tab %>% 
+  group_by(prob) %>% 
+  mutate(player_cum_avg = cumstats::cummedian(cummean(shot))) %>% 
+  ggplot(aes(fase, player_cum_avg, color = clase, group = prob)) + geom_line()
+
+
+tab %>% 
+  group_by(prob) %>% 
+  mutate(player_cum_avg = cumstats::cummedian(cummean(shot))) %>%
+  ungroup() %>% 
+  group_by(fase) %>% 
+  mutate(global_cum_avg = cummean(player_cum_avg)) %>% 
+  ggplot(aes(fase, global_cum_avg)) + geom_line()
+  
+
+```
+
+# implementacion rapida
+
+```{r}
+
+
+scoreboard <- list(probs = d$prob,
+                   score = rep(0, 100),
+                   qc = rep(T, 100),
+                   fase = 0,
+                   tiros = 0,
+                   player_avg = rep(0, 100),
+                   global_avg = 0)
+
+
+tirito <- function(scoreboard) {
+  
+  while (scoreboard$fase < 50) {
+    scoreboard$score <- scoreboard$score + (runif(100) < scoreboard$probs * scoreboard$qc)
+    scoreboard$fase <- scoreboard$fase + 1
+    scoreboard$tiros <- scoreboard$tiros + sum(scoreboard$qc)
+    scoreboard$global_avg <- sum(scoreboard$score) / scoreboard$tiros
+    scoreboard$player_avg <- scoreboard$score / scoreboard$fase
+  }
+  
+  scoreboard$score <- scoreboard$score + (runif(100) < scoreboard$probs * scoreboard$qc)
+  scoreboard$fase <- scoreboard$fase + 1
+  scoreboard$tiros <- scoreboard$tiros + sum(scoreboard$qc)
+  scoreboard$global_avg <- sum(scoreboard$score) / scoreboard$tiros 
+  scoreboard$player_avg <- scoreboard$score / scoreboard$fase
+  
+  scoreboard$qc <- scoreboard$qc & ((scoreboard$player_avg != scoreboard$global_avg)) 
+                                     # + 0.05) | (scoreboard$player_avg < scoreboard$global_avg - 0.1))
+  
+  scoreboard
+}
+
+
+best <- 0
+for (i in 1:10000) {
+  
+  scoreboard <- list(probs = jugadores,
+                   score = rep(0, 100),
+                   qc = rep(T, 100),
+                   fase = 0,
+                   tiros = 0,
+                   player_avg = rep(0, 100),
+                   global_avg = 0)
+  
+  while (sum(scoreboard$qc) > 1 & scoreboard$tiros < 14000) {
+    scoreboard <- tirito(scoreboard)
+  }
+  
+  if(sum(scoreboard$qc > 1)) {
+    scoreboard$qc <- scoreboard$score == max(scoreboard$score)
+  }
+  
+  
+  best <- best + scoreboard$qc[1]
+}
+best
+```
+

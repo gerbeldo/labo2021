@@ -1,0 +1,438 @@
+---
+title: "title"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+Uso tidyverse *porque me gusta*
+```{r}
+library(dplyr)
+library(purrr)
+library(ggplot2)
+```
+
+```{r}
+set.seed(437626)
+```
+
+Defino funcion que devuelve si un jugador encesto mas que la cantidad n
+
+```{r}
+ftirar <- function(prob, qty) {
+  # devuelve cantidad de encestados en qty para jugador con probabildiad prob
+  return(sum(runif(qty) < prob))
+}
+
+fases <- function(n, prob, qty) {
+  # devuelve un tibble con la cantidad de encestados en qty tiros por replica n
+  tibble(rep = 1:n, res = map_int(rep, ~ftirar(prob, qty)))
+}
+```
+
+```{r}
+torneo <- function(jugadores, nrep, tiros) {
+  
+  if (nrow(jugadores) > 1) {
+   jugadores %>%
+     mutate(
+       nrep = nrep,
+       tiros = tiros,
+       fase = pmap(list(nrep, prob, tiros), fases)
+     ) %>%
+     unnest(fase) %>%
+     group_by(id, clase, prob) %>%
+     summarise(mean_res = mean(res), .groups = "keep") %>%
+     ungroup()
+  } else {
+   jugadores
+ }
+}
+
+clasifica <- function(jugadores, quant) {
+  if (nrow(jugadores) > 1) {
+    jugadores_temp <- filter(jugadores, mean_res > quantile(mean_res, quant))
+    if (nrow(jugadores_temp) == 0) {
+      sample_n(jugadores, 1)
+    } else {
+      jugadores_temp
+    }
+  } else {
+    jugadores
+  }
+}
+```
+
+genero un dataframe porque me es mas comodo
+
+```{r}
+mejor <- 0.7
+peloton <- (501:599) / 1000
+jugadores <- c(mejor, peloton)
+
+d <-
+  tibble(clase = c("mejor", rep("peloton", 99)), prob = jugadores) %>%
+  rownames_to_column(var = "id")
+```
+
+Grafico la distribucion de probabilidades de jugadores, me interesa encontrar
+el outlier, digamos.
+
+```{r}
+d %>% ggplot(aes(prob)) + geom_histogram()
+```
+
+simulo 10 tiros y grafico la distribucion, coloreando por la clase (mejor/peloton)
+
+```{r}
+d %>% mutate(tiros = 10,
+             result = map2_int(prob, tiros, ftirar)) %>% 
+  ggplot(aes(result, fill = clase)) + geom_histogram()
+```
+
+simulo 5 repeticiones de 3 tiros (1500 tiros total). Calculo el promedio por fase (5 replicas de 5 tiros)
+
+```{r}
+d %>%
+  mutate(
+    tiros = 3,
+    nrep = 5,
+    fase = pmap(list(nrep, prob, tiros), fases)
+  ) %>%
+  unnest(fase) %>%
+  group_by(id, clase, prob) %>%
+  summarise(mean_res = mean(res)) %>% ungroup() -> d_fase1
+
+d_fase1 %>% 
+  ggplot(aes(mean_res, fill = clase)) +
+  geom_histogram()
+  
+  
+```
+
+Filtro a todos los jugadores que esten por debajo de la mediana
+
+```{r}
+d_fase1 %>% 
+  filter(mean_res > median(mean_res)) -> d_fase1_filtered
+```
+
+Repito
+
+```{r}
+d_fase1_filtered %>%
+  mutate(
+    tiros = 3,
+    nrep = 5,
+    fase = pmap(list(nrep, prob, tiros), fases)
+  ) %>%
+  unnest(fase) %>%
+  group_by(id, clase, prob) %>%
+  summarise(mean_res = mean(res)) %>%
+  ungroup() -> d_fase2
+
+
+d_fase2 %>% 
+  filter(mean_res > median(mean_res)) -> d_fase2_filtered
+
+```
+
+```{r}
+d_fase2_filtered %>% 
+  ggplot(aes(mean_res, fill = clase)) +
+  geom_histogram()
+```
+
+
+repito
+
+```{r}
+d_fase2_filtered %>% 
+  torneo(5, 10) %>% 
+  filter(mean_res > quan(mean_res)) %>% 
+  torneo(5, 10) %>% 
+  filter(mean_res > median(mean_res)) %>% 
+  torneo(5, 10) %>% 
+  filter(mean_res > median(mean_res))
+```
+
+
+```{r}
+d %>% 
+  torneo(5, 3) %>% 
+  filter(mean_res > quantile(mean_res, 0.5)) %>% 
+  torneo(10, 3) %>% 
+  filter(mean_res > quantile(mean_res, 0.3)) %>% 
+  torneo(15, 5) %>% 
+  filter(mean_res > quantile(mean_res, 0.3)) %>% 
+  torneo(20, 5) %>% 
+  filter(mean_res > quantile(mean_res, 0.3)) %>% 
+  torneo(20, 7) %>% 
+  filter(mean_res > quantile(mean_res, 0.3)) %>%  
+  torneo(5, 10) %>% 
+  filter(mean_res > quantile(mean_res, 0.3)) %>% 
+  torneo(5, 20) %>% 
+  filter(mean_res > quantile(mean_res, 0.3)) %>% 
+  torneo(5, 20) %>% 
+  filter(mean_res > quantile(mean_res, 0.5)) %>% view
+  
+  
+```
+
+```{r}
+
+
+d %>% 
+  torneo(5, 3) %>% 
+  clasifica(0.3) %>% 
+  torneo(5, 5) %>% 
+  clasifica(0.3) %>% 
+  torneo(10,10) %>% 
+  clasifica(0.5) %>% 
+  torneo(10, 20) %>% 
+  clasifica(0.95)
+```
+
+```{r}
+cazatalentos2 <- function(jugadores) {
+  jugadores %>%
+    torneo(5, 3) %>%
+    clasifica(0.2) %>%
+    torneo(5, 5) %>%
+    clasifica(0.2) %>%
+    torneo(5, 20) %>%
+    clasifica(0.2) %>%
+    torneo(5, 20) %>%
+    clasifica(0.2) %>%
+    torneo(10, 30) %>%
+    clasifica(0.35) %>% 
+    torneo(10, 40) %>%
+    clasifica(0.5) %>%
+    torneo(5, 100) %>% 
+    clasifica(0.9) %>%
+    torneo(5, 100) %>%
+    clasifica(0.9) %>%
+    torneo(10, 100) %>%
+    clasifica(0.99) %>%
+    pull(clase)
+}
+```
+
+```{r}
+cazatalentos3 <- function(jugadores) {
+  jugadores %>%
+    torneo(5, 5) %>%
+    clasifica(0.2) %>%
+    torneo(5, 5) %>%
+    clasifica(0.2) %>%
+    torneo(5, 5) %>%
+    clasifica(0.2) %>%
+    torneo(3, 10) %>%
+    clasifica(0.2) %>%
+    torneo(5, 30) %>%
+    clasifica(0.2) %>% 
+    torneo(5, 50) %>%
+    clasifica(0.3) %>%
+    torneo(5, 50) %>% 
+    clasifica(0.4) %>%
+    torneo(5, 50) %>%
+    clasifica(0.5) %>%
+    torneo(5, 100) %>%
+    clasifica(0.7) %>%
+    torneo(5, 100) %>%
+    clasifica(0.8) %>%
+    torneo(5, 150) %>%
+    clasifica(0.8) %>%
+    torneo(5, 200) %>%
+    clasifica(0.99) %>% 
+    pull(clase)
+}
+```
+
+```{r}
+tibble(replica = 1:100) %>% 
+  mutate(ganador = map_chr(replica, ~cazatalentos3(d))) ->results
+```
+
+```{r}
+results %>% select(ganador) %>% table()
+```
+
+
+```{r}
+
+
+cazatalentos <- function(jugadores) {
+  tiros_totales <- 0
+  
+  while(nrow(jugadores) != 1){
+    tiros_totales <- tiros_totales + nrow(jugadores) * 5 * 10
+    jugadores %>% 
+      torneo(3, 5) %>% 
+      filter(mean_res > median(mean_res)) -> jugadores_temp
+    
+    if (nrow(jugadores_temp) == 0) {
+      jugadores <- sample_n(jugadores, 1)
+    } else {
+      jugadores <- jugadores_temp
+    }
+  }
+  #print(paste("tiros totales =", as.character(tiros_totales)))
+  jugadores$clase
+  
+}
+
+```
+
+
+```{r}
+tibble(replica = 1:100) %>% 
+  mutate(ganador = map_chr(replica, ~cazatalentos(d))) ->results
+```
+
+
+```{r}
+d %>%
+  mutate(
+    tiros = 5,
+    nrep = 5,
+    fase = pmap(list(nrep, prob, tiros), fases)
+  ) %>%
+  unnest(fase) -> d_fase1
+
+
+d_fase1 %>% 
+  mutate(global_mean = mean(res)) %>% 
+  group_by(id, clase, global_mean/5) %>% view
+  summarise(mean_res = mean(res), .groups = "keep") %>% 
+  ggplot(aes(mean_res, mean_res - 1.65, color = clase)) +
+  geom_point(position = "jitter")
+```
+
+
+# generando un unico tibble, que luego puedo filtrar
+
+```{r}
+init <- function(jugadores) {
+# inicializa tibble con variables necesarias
+  if(is.null(jugadores$fase)) {
+    jugadores$fase <- 0
+    jugadores$qc <- T
+    jugadores$id <- factor(jugadores$id, levels = 1:100)
+  }
+  
+  jugadores
+}
+  
+
+encestado <- function(prob, tiros) {
+# genera tibble con numero de tiro y boolean si encesta  
+  tibble(tiro_n = 1:tiros,
+         shot = runif(tiros) < prob)
+}
+
+plan(multisession(workers = 8))
+
+n_tiros <- function(jugadores, tiros) {
+  # actualiza tabla de jugadores con los tiros de la siguiente fase
+  max_fase <- max(jugadores$fase)
+  
+  jugadores %>% 
+    select(id, clase, prob, fase, qc) %>% 
+    filter(fase == 0, qc) %>% 
+    mutate(shots = future_map2(prob, tiros, encestado),
+           fase = max_fase + 1) %>% 
+    unnest(shots) -> jugadores_temp
+  
+  bind_rows(jugadores, jugadores_temp)
+}
+
+
+
+
+clasifica <- function(jugadores, cutoff){
+  jugadores %>% 
+    filter(fase = max(fase), qc) %>% 
+    group_by(id, )
+}
+
+d_init %>% 
+  n_tiros(40) %>% 
+  n_tiros(40) %>% 
+  filter(!is.na(shot)) %>% 
+  group_by(id, fase, clase) %>% 
+  summarise(mean_shot = mean(shot)) %>%
+  ungroup(fase, clase) %>% 
+  filter(any(mean_shot > 0.6)) %>% 
+  pivot_wider(names_from = fase, values_from = mean_shot, names_prefix = "t") %>% 
+  ggplot(aes(t1, t2, color = clase)) + geom_point(position = "jitter") 
+
+  
+d_init %>% 
+  n_tiros(35) %>% 
+  n_tiros(35) %>% 
+  filter(!is.na(shot)) %>%
+  mutate(overall_mean = mean(shot)) %>% 
+  group_by(id, fase, clase, overall_mean) %>% 
+  summarise(mean_shot = mean(shot),.groups = "keep") %>% 
+  ungroup(fase, clase) %>% 
+  filter(mean(mean_shot) > 0.55)
+  
+d_init %>% 
+  n_tiros(35) %>% 
+  n_tiros(35) %>% 
+  filter(!is.na(shot)) %>%
+  group_by(id, fase, clase) %>% 
+  summarise(mean_shot = mean(shot),.groups = "keep") %>% 
+  ungroup(fase) %>% 
+  mutate(diff = mean_shot[fase == 2] - mean_shot[fase == 1]) %>% 
+  filter(fase == 1) %>% 
+  ggplot(aes(mean_shot, diff, color = clase)) + geom_point(position = "jitter") + 
+  geom_smooth(method = "lm")
+
+
+cazatalentos2d <- function(jugadores) {
+  jugadores %>%
+    n_tiros(35) %>%
+    n_tiros(35) %>%
+    filter(!is.na(shot)) %>%
+    group_by(id, fase, clase) %>%
+    summarise(mean_shot = mean(shot), .groups = "keep") %>%
+    ungroup(fase, clase) %>%
+    filter(median(mean_shot) > 0.55) %>% 
+    ungroup() %>% 
+    pull(clase) %>% 
+    unique()
+}
+  
+tibble(replica = 1:1000) %>% 
+  mutate(ganador = map_chr(replica, ~is_mejor(cazatalentos2d(d_init)))) ->results
+
+results %>% select(ganador) %>% table()
+beepr::beep("coin")
+```
+
+
+```{r}
+d_init %>%
+    n_tiros(35) %>%
+    n_tiros(35) -> d_fase1
+
+d_fase1 %>% 
+    filter(!is.na(shot)) %>%
+    group_by(id, fase, clase, qc) %>%
+    summarise(mean_shot = mean(shot), .groups = "keep") %>%
+    ungroup(fase, clase) %>%
+    mutate(qc = median(mean_shot) > 0.55) %>% ungroup() %>% count(qc)
+```
+
