@@ -40,7 +40,7 @@ setwd(directory.root)
 # read
 
 ```{r}
-dataset <- fread("./datasets_ori/paquete_premium.csv.gz")
+dataset <- fread(paste0(directory.root, "datasetsOri/paquete_premium.csv.gz"))
 ```
 
 # errores del dataset
@@ -159,6 +159,6 @@ dataset <- dataset[foto_mes != 202006]
 ```
 
 ```{r}
-fwrite("./datasets/paquete_premium_corregido_ordered_nojune.csv.gz")
+fwrite(x = dataset, file = paste0(directory.root, "datasets/2021-09-30_paquete_premium_corregido_ordered_nojune.csv.gz"))
 ```
 
