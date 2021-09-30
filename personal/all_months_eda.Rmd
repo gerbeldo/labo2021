@@ -1,0 +1,277 @@
+---
+title: "all_months_eda"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(ggridges)
+library(magrittr)
+library(purrr)
+```
+
+```{r}
+setwd("~/code/austral/labo1/")
+
+d <- fread("datasets_ori/paquete_premium.csv.gz")
+dataset <- fread("./datasets/paquete_premium_corregido.csv.gz", sep = "\t")
+```
+
+chequeo numero de meses. Estan los 37, lo cual incluye al ultimo
+```{r}
+d[,.(n_meses = uniqueN(foto_mes))]
+d[.N, .(unique(foto_mes))]
+```
+
+
+```{r}
+ridge <- function(tabla, x, y = "foto_mes") {
+  p <- ggplot(tabla, aes(x = .data[[x]], y = factor(.data[[y]]))) +
+    geom_density_ridges(scale = 0.95) +
+    theme_minimal()
+  p
+}
+
+ridge_log <- function(tabla, x, y = "foto_mes") {
+  p <- ggplot(tabla, aes(x = .data[[x]], y = factor(.data[[y]]))) +
+    geom_density_ridges(scale = 0.95, na.rm = T) +
+    scale_x_log10() +
+    theme_minimal()
+  p
+}
+
+ridge_pseudo_log <- function(tabla, x, y = "foto_mes") {
+  p <- ggplot(tabla, aes(x = .data[[x]], y = factor(.data[[y]]), fill = clase_ternaria)) +
+    geom_density_ridges(scale = 0.95, na.rm = T, alpha = 0.4) +
+    scale_x_continuous(trans = "pseudo_log") +
+    theme_minimal()
+  p
+}
+
+my_ggsave <- function(filename, plot, width = 15, height = 45) {
+  p <- possibly(ggsave(filename = filename,
+                       plot = plot,
+                       width = width,
+                       height = height),
+                otherwise = NA)
+}
+
+save_plots <- function(l, prefix) {
+  t <- tibble(name = names(l), plot = l)
+  t %>%
+    mutate(o = walk2(name, plot, ~ my_ggsave(
+      filename = paste0("./plots/", prefix, "_", .x, ".pdf"),
+      plot = .y
+    )))
+}
+```
+
+# overall ridges
+
+Generate vector with variable names to iterate
+```{r}
+vars <- names(d)
+vars <- set_names(vars)
+```
+
+Plot ridges 
+```{r}
+l <- vars %>% map(~ridge(tabla = d_corr[sample(1:.N, 50000)], x = .x))
+save_plots(l, "corrected/ridge")
+rm(l)
+```
+
+Plot log ridges
+
+```{r}
+l <- vars %>% map(~ridge_log(tabla = d[sample(1:.N, 50000)], x = .x))
+save_plots(l, "ridge_log")
+rm(l)
+```
+
+```{r}
+l <- vars %>% map(~ridge_pseudo_log(tabla = d[sample(1:.N, 10000)], x = .x))
+save_plots(l, "ridge_pseudo_log")
+rm(l)
+```
+
+# stratified ridges
+
+Generate vector with variable names to iterate, remove clase_ternaria
+```{r}
+vars <- names(d_corr)
+vars <- set_names(vars)
+vars <- vars[-length(vars)]
+```
+
+```{r}
+l <- vars %>% map(~ridge_pseudo_log(tabla = d_corr[sample(1:.N, 10000)], x = .x))
+save_plots(l, "corrected/pseudo_log")
+rm(l)
+```
+
+# plots de proporciones de datos
+
+Graficos que muestran la proporcion de datos que cumplen alguna condicion, agrupados por mes.
+
+Las condiciones son:
+1. iguales a cero
+2. Son NA
+3. 
+
+```{r}
+setorder(dataset, foto_mes)
+campos_buenos <- setdiff(colnames(dataset), c("numero_de_cliente", "foto_mes", "clase_ternaria"))
+```
+
+## ceros
+
+```{r}
+pdf("./work/zeroes_ratio.pdf")
+for( campo in  campos_buenos )
+{
+  tbl <- dataset[ foto_mes<=202101 ,  list( "zero_ratio" = sum(get(campo)==0, na.rm=TRUE)/.N ) , foto_mes ]
+
+  ymin <-  min( tbl$zero_ratio )
+  ymax <-  max( tbl$zero_ratio )
+  if( ymin == 0 )  ymin <- -0.1
+  if( ymax == 0 )  ymax <-  0.1
+
+  plot(x= 1:nrow(tbl),
+       y= tbl$zero_ratio,
+       type= "o",
+       main= paste0("Zeroes ratio  -  ",  campo),
+       xlab= "Periodo",
+       ylab= "Zeroes  ratio",
+       ylim= c( ymin, ymax ),
+       xaxt= "n"
+     )
+
+  axis(1, at=1:nrow(tbl), labels=tbl$foto_mes)
+
+  abline(v=c(35), col=c("red"), lty=c(1), lwd=c(1))
+
+  abline(v=c(1,13,25,37), col=c("green","green","green","green"), lty=c(1,1,1,1), lwd=c(1,1,1,1))
+  abline(v=c(7,19,31), col=c("green","green","green"), lty=c(3,3,3), lwd=c(1,1,1))
+}
+dev.off()
+```
+
+## na rate
+
+```{r}
+pdf("./work/nas_ratio.pdf")
+for (campo in campos_buenos)
+{
+  tbl <- dataset[foto_mes <= 202101, list("na_ratio" = sum(is.na(get(campo)), na.rm = TRUE) / .N), foto_mes]
+
+  ymin <- min(tbl$na_ratio)
+  ymax <- max(tbl$na_ratio)
+  if (ymin == 0) ymin <- -0.1
+  if (ymax == 0) ymax <- 0.1
+
+  plot(
+    x = 1:nrow(tbl),
+    y = tbl$na_ratio,
+    type = "o",
+    main = paste0("NAs ratio  -  ", campo),
+    xlab = "Periodo",
+    ylab = "NAs  ratio",
+    ylim = c(ymin, ymax),
+    xaxt = "n"
+  )
+
+  axis(1, at = 1:nrow(tbl), labels = tbl$foto_mes)
+
+  abline(v = c(35), col = c("red"), lty = c(1), lwd = c(1))
+
+  abline(v = c(1, 13, 25, 37), col = c("green", "green", "green", "green"), lty = c(1, 1, 1, 1), lwd = c(1, 1, 1, 1))
+  abline(v = c(7, 19, 31), col = c("green", "green", "green"), lty = c(3, 3, 3), lwd = c(1, 1, 1))
+}
+dev.off()
+```
+
+## promedios
+
+```{r}
+pdf("./work/promedios.pdf")
+for (campo in campos_buenos)
+{
+  tbl <- dataset[foto_mes <= 202101, list("promedio" = mean(get(campo), na.rm = TRUE)), foto_mes]
+  ceros <- dataset[foto_mes <= 202101, list("zero_ratio" = sum(get(campo) == 0, na.rm = TRUE) / .N), foto_mes]
+
+  plot(
+    x = 1:nrow(tbl),
+    y = tbl$promedio,
+    type = "o",
+    main = paste0("Promedios  -  ", campo),
+    xlab = "Periodo",
+    ylab = "Promedio",
+    xaxt = "n"
+  )
+
+  axis(1, at = 1:nrow(tbl), labels = tbl$foto_mes)
+
+  abline(v = c(1, 13, 25, 37), col = c("green", "green", "green", "green"), lty = c(1, 1, 1, 1), lwd = c(1, 1, 1, 1))
+  abline(v = c(7, 19, 31), col = c("green", "green", "green"), lty = c(3, 3, 3), lwd = c(1, 1, 1))
+
+  for (i in 1:nrow(tbl))
+  {
+    if (ceros[i, zero_ratio] > 0.99 & median(ceros[, zero_ratio]) < 0.99) {
+      abline(v = c(i), col = c("red"), lty = c(1), lwd = c(1))
+    }
+  }
+}
+dev.off()
+
+beepr::beep("coin")
+```
+
+## promedios campos diferentes de cero
+
+```{r}
+pdf("./work/promedios_nocero.pdf")
+for (campo in campos_buenos)
+{
+  tbl <- dataset[foto_mes <= 202101 & get(campo) != 0, list("promedio" = mean(get(campo), na.rm = TRUE)), foto_mes]
+  ceros <- dataset[foto_mes <= 202101, list("zero_ratio" = sum(get(campo) == 0, na.rm = TRUE) / .N), foto_mes]
+
+  plot(
+    x = 1:nrow(tbl),
+    y = tbl$promedio,
+    type = "o",
+    main = paste0("Promedios NO cero -  ", campo),
+    xlab = "Periodo",
+    ylab = "Promedio valores no cero",
+    xaxt = "n"
+  )
+
+  axis(1, at = 1:nrow(tbl), labels = tbl$foto_mes)
+
+  abline(v = c(1, 13, 25, 37), col = c("green", "green", "green", "green"), lty = c(1, 1, 1, 1), lwd = c(1, 1, 1, 1))
+  abline(v = c(7, 19, 31), col = c("green", "green", "green"), lty = c(3, 3, 3), lwd = c(1, 1, 1))
+
+  for (i in 1:nrow(tbl))
+  {
+    if (ceros[i, zero_ratio] > 0.99 & median(ceros[, zero_ratio]) < 0.99) {
+      abline(v = c(i), col = c("red"), lty = c(1), lwd = c(1))
+    }
+  }
+}
+dev.off()
+beepr::beep("coin")
+```
+
