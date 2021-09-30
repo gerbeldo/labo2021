@@ -1,0 +1,438 @@
+---
+title: An R Markdown document converted from "labo2021/codigo/01-EDA/01.01 EDA Basico.ipynb"
+output: html_document
+---
+
+# 01.01 EDA y Modelo Inicial
+Este programa muestra como cargar un archivo, hacer un mínimo tratamiento y exploración de datos. Plantea algunas reglas de clasificación básica y evalúa los resultados.
+
+```{r}
+#Se limpia la memoria
+rm(list=ls())
+gc()
+```
+
+```{r}
+#La librería data table permite manejar grandes volumenes de datos en memoria
+library("data.table")
+
+#Contiene funciones para evaluar performance de la clasificación
+library("ROCR")
+
+#Permite generar graficos y visualizaciones
+library(ggplot2)
+```
+
+```{r}
+#Parametros entrada
+
+#kcarpeta_datasets    <- "../input/laboratorio-de-implementacion-i-2021/"   #KAGGLE
+kcarpeta_datasets    <- "~/buckets/b1/datasets/"                          #VM o Ubuntu
+
+#Archivo con datos etiquetados para entrenamiento
+karchivo_entrada      <-  paste0(kcarpeta_datasets, "paquete_premium_202011.csv")
+
+#Archivo con datos sin etiquetar para generar la predicción
+karchivo_predecir      <-  paste0(kcarpeta_datasets, "paquete_premium_202101.csv")
+
+#Formato para submit en Kaggle
+#karchivo_score      <-  "../input/uamds2020ldi1f1/Sample_201910_Fase_I.txt"
+
+#Separador de campos en archivos
+kcampos_separador     <-  "\t"
+
+#Campo que identifica las muestras
+kcampo_id             <-  "numero_de_cliente"
+
+#Campo que contiene la clase a estimar
+kclase_nomcampo       <-  "clase_ternaria"
+
+#Valor de interés
+kclase_valor_positivo <-  "BAJA+2"
+
+#Campos a borrar para el entrenamiento
+kcampos_a_borrar      <-  c(kcampo_id,kclase_nomcampo,"foto_mes")
+
+#Campo que contendrá a la variable objetivo generada
+kobjetivo             <-  "clase"
+
+#Identificación del modelo
+kmodelo               <-  "01-EDA"
+
+#Ganancia por TP
+kTPGain               <-  48750
+
+#Pérdida por FP
+kFPGain               <-  -1250
+```
+
+## Lectura y manejo básico de datos
+
+```{r}
+#Lectura de archivo de en un data frame
+dataset <- fread(karchivo_entrada)
+```
+
+### Estadísticas básicas del dataset
+
+```{r}
+summary(dataset[,1:10]) #Primeras 10 columnas
+```
+
+```{r}
+#El universo agrupado por  clase_ternaria
+ftable(dataset$clase_ternaria)
+```
+
+# Selección de datos
+Los data frames pueden filtrarse especificando entre corchetes las filas y columnas [filas,columnas]. Las formas de especificar mas usadas son:
+- Índice numérico, por ejemplo, *1:10* indica del elemento 1 al 10 (inclusive)
+- Nombre o lista de nombres, por ejemplo, *campo*
+- Lista de valores Verdadero/Falso. Es utilizadon con condiciones del tipo *columna == valor*
+
+```{r}
+#Seleccionar 3 primeras filas y campos indicados. La función c() genera una lista de valores
+dataset[1:3,c("Master_mconsumototal","clase_ternaria")]
+```
+
+```{r}
+dataset[1:5,c(1:5,155)]
+```
+
+```{r}
+#Seleccion por un campo indirecto. kclase_nomcampo es una variable que tiene el nombre del campo. 
+dataset[1:3,..kclase_nomcampo]
+```
+
+Para seleccionar en base a una condicion se arma una lista con Verdadero/Falso actuando como flitro de línea. La siguiente lista adopata el valor Verdadero para las líneas BAJA+2
+
+```{r}
+c(dataset[,..kclase_nomcampo] == kclase_valor_positivo)
+```
+
+Pasando el filtro como condición de línea al data frame se pueden seleccionar solo las que cumplen con la condición
+
+```{r}
+dataset[c(dataset[,..kclase_nomcampo] == kclase_valor_positivo),][1:10]
+```
+
+### Modificación de datos
+
+Puedo asignar valores a una columna del data frame con el operador := En este caso la referencia indirecta debe hacerse entre paréntesis
+
+```{r}
+#Creo una columna con valor constante
+dataset[,(kobjetivo) := 0]
+#dataset[  , clase:= 0 ]   Es lo mismo! kobjetivo se definio igual al string "clase"
+```
+
+Asigno 1 en caso de BAJA+2 y 0 para cualquier otro valor.
+
+```{r}
+#clase
+dataset[ clase_ternaria=='BAJA+2' ,   clase:= 1]
+sum( dataset$clase )
+```
+
+Puedo eliminar columnas asignandoles el valor NULL
+
+```{r}
+#Borro una o varias columnas
+#dataset[ ,  (kcampos_a_borrar) := NULL    ] 
+```
+
+```{r}
+#calculo la ganancia de incentivar cada caso
+dataset[  , ganancia:= kFPGain ] #-1250
+dataset[ clase_ternaria=='BAJA+2' ,   ganancia:= kTPGain] #48750
+sum( dataset$ganancia )
+```
+
+Puedo asignar valores a un dataset "filtrado". En este caso imputo 0 en los NA
+
+```{r}
+#Puedo asignar valores a cualquier campo que cumpla con una condici. Ejemplo valores NA
+dataset[is.na(dataset)] <- 0
+
+# Resumen básico del dataset
+summary( dataset)
+```
+
+```{r}
+#Resumen segregado por clase ternaria
+by(dataset, dataset$clase_ternaria, summary)
+```
+
+## EDA
+
+```{r}
+hist(dataset$cliente_edad)
+```
+
+```{r}
+#Se comportan diferente?
+ftable(dataset[ cliente_edad <=33, clase])
+```
+
+```{r}
+ftable(dataset[ cliente_edad  >33, clase])
+```
+
+```{r}
+#Ganancia
+sum( dataset[ cliente_edad <=33, ganancia] )
+```
+
+```{r}
+#Lift
+(sum( dataset[ cliente_edad <=33, clase]) / nrow( dataset[ cliente_edad <=33, ] )) /  (sum( dataset[, clase]) / nrow( dataset ))
+```
+
+```{r}
+#Ganancia
+sum( dataset[ cliente_edad >33, ganancia] )
+```
+
+```{r}
+#Lift
+(sum( dataset[ cliente_edad >33, clase]) / nrow( dataset[ cliente_edad >33, ] )) /  (sum( dataset[, clase]) / nrow( dataset ))
+```
+
+```{r}
+#Corte por mcuentas_saldo
+hist(dataset[ ,mcuentas_saldo] )
+boxplot(mcuentas_saldo  ~ clase_ternaria, data=dataset)
+boxplot(mcuentas_saldo  ~ clase_ternaria, data=dataset, outline=FALSE)
+```
+
+```{r}
+ftable(dataset[ mcuentas_saldo <= -120000, clase_ternaria])
+```
+
+```{r}
+ftable(dataset[ mcuentas_saldo >  -120000, clase_ternaria])
+```
+
+```{r}
+sum( dataset[ mcuentas_saldo <= -120000, ganancia] )
+```
+
+```{r}
+sum( dataset[ mcuentas_saldo > -120000, ganancia] )
+```
+
+```{r}
+boxplot(Visa_mconsumototal  ~ clase_ternaria, data=dataset, outline=FALSE)
+```
+
+```{r}
+hist(dataset$cliente_antiguedad)
+```
+
+```{r}
+hist(dataset$ccallcenter_transacciones)
+```
+
+```{r}
+hist(dataset$chomebanking_transacciones)
+```
+
+```{r}
+ggplot(dataset, aes(x=ccallcenter_transacciones, y=chomebanking_transacciones)) + # fill=name allow to automatically dedicate a color for each group
+        geom_point()+
+        scale_x_log10()+
+        scale_y_log10()
+```
+
+```{r}
+ggplot(dataset, aes(x=dataset$Visa_mconsumototal))+ geom_histogram() + scale_x_log10()
+```
+
+```{r}
+ggplot(dataset, aes(x=dataset$Master_mconsumototal))+ geom_histogram() + scale_x_log10()
+```
+
+Determino correlaciones entre las variables y el objetivo. 
+
+```{r}
+dataset[ ,  (kcampos_a_borrar) := NULL    ] 
+correlaciones <- abs(cor(dataset[,-..kobjetivo],dataset[,..kobjetivo]))
+```
+
+```{r}
+correlaciones[order(-correlaciones[,1]),][0:20]
+```
+
+```{r}
+library(ggplot2)
+
+for (feature in names(correlaciones[order(-correlaciones[,1]),][c(3,4,6,11)])) {
+    
+    
+    plot <- ggplot(dataset, aes(x=as.factor(clase), y=get(feature), fill=as.factor(clase))) + # fill=name allow to automatically dedicate a color for each group
+      geom_boxplot(fill="slateblue", alpha=0.2)+
+      geom_violin(alpha=0.2)+
+    ggtitle(feature)+
+        scale_y_log10()
+    print(plot)
+    
+}
+```
+
+## Modelo básico
+Vamos a definir un modelo muy básico. La gente que no usa las tarjetas de crédito es candidata a darse de baja. Defino una variable como la suma de transacciones en ambas franquicias.
+
+```{r}
+dataset$TC_cactividad = dataset$Visa_cconsumos + dataset$Master_cconsumos 
+
+# Most basic violin chart
+ggplot(dataset, aes(x=as.factor(clase), y=TC_cactividad, fill=as.factor(clase))) + # fill=name allow to automatically dedicate a color for each group
+  geom_boxplot(fill="slateblue", alpha=0.2)+
+  geom_violin(alpha = 0.2)+
+     ylim(0, 15)
+```
+
+Genero la variable Predicted con 1 si no tiene movimientos. 
+
+```{r}
+dataset$Predicted = as.integer(dataset$TC_cactividad < 1)
+```
+
+Determino la curva ROC y Área bajo la curva
+
+```{r}
+#Calculo las metricas
+pred <- prediction(dataset$Predicted, dataset$clase)
+
+#Calculo las metricas
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+
+#Grafico la ROC
+plot(perf, col=rainbow(10))
+
+#Determino AUC
+performance( pred,"auc")@y.values
+```
+
+Cuanto dinero vale el modelo para el banco?
+
+```{r}
+#Calculo la ganancia
+sum( dataset[ dataset$Predicted==1, ganancia] )
+```
+
+```{r}
+#TP
+sum(dataset$Predicted*dataset[,..kobjetivo])
+```
+
+```{r}
+#Incentivados Totales
+sum(dataset$Predicted)
+```
+
+Corremos el modelo para el dataset del que no conocemos la clase
+
+```{r}
+#Leo Archivo a Predecir
+dataset_pred <- fread(karchivo_predecir)
+
+dataset_salida <- dataset_pred[,..kcampo_id]
+
+#Campos a eliminar
+dataset_pred[ ,  (kcampos_a_borrar) := NULL    ] 
+
+#Inputo missings
+dataset_pred[is.na(dataset_pred)] <- 0
+
+#Identifico casos a incentivar en el modelo definido
+dataset_pred$TC_cactividad = dataset_pred$Visa_cconsumos + dataset_pred$Master_cconsumos 
+dataset_pred$Predicted = as.integer(dataset_pred$TC_cactividad < 1)
+
+#Grabo prediccion en salida
+dataset_salida[,"Predicted"] <- dataset_pred$Predicted
+write.csv(dataset_salida,"./salida_basico.csv", row.names = FALSE)
+```
+
+Modelo alternativo con regla mas amplia. Incentivo todos aquellos que tienen menos de tres trx
+
+```{r}
+dataset$Predicted = as.integer(dataset$TC_cactividad < 3)
+pred <- prediction(dataset$Predicted, dataset$clase)
+
+#Calculo las metricas
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+
+#Grafico la ROC
+plot(perf, col=rainbow(10))
+
+#Determino AUC
+performance( pred,"auc")@y.values
+
+#Calculo la ganancia
+print(paste("La Ganancia es:", sum( dataset[ dataset$Predicted==1, ganancia] )))
+```
+
+```{r}
+#Leo Archivo a Predecir
+dataset_pred <- fread(karchivo_predecir)
+
+dataset_salida <- dataset_pred[,..kcampo_id]
+
+#Campos a eliminar
+dataset_pred[ ,  (kcampos_a_borrar) := NULL    ] 
+
+#Inputo missings
+dataset_pred[is.na(dataset_pred)] <- 0
+
+#Identifico casos a incentivar
+dataset_pred$TC_cactividad = dataset_pred$Visa_cconsumos + dataset_pred$Master_cconsumos 
+dataset_pred$Predicted = as.integer(dataset_pred$TC_cactividad < 3)
+
+#Grabo prediccion en salida
+dataset_salida[,"Predicted"] <- dataset_pred$Predicted
+write.csv(dataset_salida,"./salida_basico_3tx.csv", row.names = FALSE)
+```
+
+Modelo alternativo con regla mas estricta. Incentivo todos aquellos que no tienen trx pero si en el trimestre
+
+```{r}
+dataset$Predicted = as.integer((dataset$Master_cconsumos == 0) & (dataset$Visa_cconsumos == 0) 
+                               & (dataset$catm_trx == 0)
+                               & (dataset$ctrx_quarter != 0)
+                              )
+
+pred <- prediction(dataset$Predicted, dataset$clase)
+
+perf <- performance(pred, measure = "tpr", x.measure = "fpr")
+plot(perf, col=rainbow(10))
+performance( pred,"auc")@y.values
+
+#Calculo la ganancia
+print(paste("La Ganancia es:", sum( dataset[ dataset$Predicted==1, ganancia] )))
+```
+
+```{r}
+#Leo Archivo a Predecir
+dataset_pred <- fread(karchivo_predecir)
+
+dataset_salida <- dataset_pred[,..kcampo_id]
+
+#Campos a eliminar
+dataset_pred[ ,  (kcampos_a_borrar) := NULL    ] 
+
+#Inputo missings
+dataset_pred[is.na(dataset_pred)] <- 0
+
+#Identifico casos a incentivar
+dataset_pred$Predicted = as.integer((dataset_pred$Master_cconsumos == 0) & (dataset_pred$Visa_cconsumos == 0) 
+                               & (dataset_pred$catm_trx == 0)
+                               & (dataset_pred$ctrx_quarter != 0)
+                              )
+
+#Grabo prediccion en salida
+dataset_salida[,"Predicted"] <- dataset_pred$Predicted
+write.csv(dataset_salida,"./salida_basico_rest.csv", row.names = FALSE)
+
+```
+
