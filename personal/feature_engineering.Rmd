@@ -19,6 +19,29 @@ editor_options:
 library(data.table)
 ```
 
+# paths
+
+para poder usarlo en la PC y en la nube sin tener que cambiar la ruta cambiar aqui las rutas en su maquina
+```{r}
+
+switch(Sys.info()[["sysname"]],
+  Darwin = {
+    directory.root <- "~/code/austral/labo1/"
+  }, # Apple MAC
+  Linux = {
+    directory.root <- "~/buckets/b1/"
+  } # Google Cloud
+)
+
+# defino la carpeta donde trabajo
+setwd(directory.root)
+```
+
+# read
+
+```{r}
+dataset <- fread("./datasets_ori/paquete_premium.csv.gz")
+```
 
 # errores del dataset
 
@@ -136,6 +159,6 @@ dataset <- dataset[foto_mes != 202006]
 ```
 
 ```{r}
-frwrite("./datasets/paquete_premium_corregido_ordered_nojune.csv.gz")
+fwrite("./datasets/paquete_premium_corregido_ordered_nojune.csv.gz")
 ```
 
