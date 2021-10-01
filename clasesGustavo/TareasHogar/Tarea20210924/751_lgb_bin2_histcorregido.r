@@ -60,7 +60,7 @@ hs <- makeParamSet(
          makeNumericParam("feature_fraction", lower=    0.1  , upper=    0.4),
          makeIntegerParam("min_data_in_leaf", lower= 1000L   , upper= 8000L),
          makeIntegerParam("num_leaves",       lower=  100L   , upper= 1024L),
-         makeNumericParam("prob_corte",       lower=    0.01, upper=    0.1)
+         makeNumericParam("prob_corte",       lower=    0.01, upper=    0.06)
         )
 
 campos_malos  <- c("mpasivos_margen", "numero_de_cliente", "mcomisiones_mantenimiento")   #aqui se deben cargar todos los campos culpables del Data Drifting
