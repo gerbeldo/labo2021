@@ -45,7 +45,7 @@ kexperimento  <- NA   #NA si se corre la primera vez, un valor concreto si es pa
 
 kscript         <- "751_lgb_bin2_histcorregido"
 
-karch_dataset    <- "./datasets/paquete_premium_corregido.csv.gz"
+karch_dataset    <- "~/buckets/b1/datasets/2021-09-30_paquete_premium_corregido_ordered_nojune.csv.gz"
 kmes_apply       <- 202101  #El mes donde debo aplicar el modelo
 kmes_train_hasta <- 202011  #Obvimente, solo puedo entrenar hasta 202011
 
@@ -60,12 +60,12 @@ hs <- makeParamSet(
          makeNumericParam("feature_fraction", lower=    0.1  , upper=    0.4),
          makeIntegerParam("min_data_in_leaf", lower= 1000L   , upper= 8000L),
          makeIntegerParam("num_leaves",       lower=  100L   , upper= 1024L),
-         makeNumericParam("prob_corte",       lower=    0.040, upper=    0.055)
+         makeNumericParam("prob_corte",       lower=    0.01, upper=    0.1)
         )
 
 campos_malos  <- c("mpasivos_margen")   #aqui se deben cargar todos los campos culpables del Data Drifting
 
-ksemilla_azar  <- 102191  #Aqui poner la propia semilla
+ksemilla_azar  <- 437626  #Aqui poner la propia semilla
 #------------------------------------------------------------------------------
 #Funcion que lleva el registro de los experimentos
 
