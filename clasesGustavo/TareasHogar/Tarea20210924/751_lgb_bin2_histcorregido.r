@@ -1,3 +1,4 @@
+#E1003
 #Necesita para correr en Google Cloud
 #40 GB de memoria RAM
 #256 GB de espacio en el disco local
@@ -45,7 +46,7 @@ kexperimento  <- NA   #NA si se corre la primera vez, un valor concreto si es pa
 
 kscript         <- "751_lgb_bin2_histcorregido"
 
-karch_dataset    <- "~/buckets/b1/datasets/2021-09-30_paquete_premium_corregido_ordered_nojune.csv.gz"
+karch_dataset    <- "~/buckets/b1/datasets/2021-10-02_corr_ord_nojune_usd.csv.gz"
 kmes_apply       <- 202101  #El mes donde debo aplicar el modelo
 kmes_train_hasta <- 202011  #Obvimente, solo puedo entrenar hasta 202011
 
@@ -63,7 +64,9 @@ hs <- makeParamSet(
          makeNumericParam("prob_corte",       lower=    0.01, upper=    0.06)
         )
 
-campos_malos  <- c("mpasivos_margen", "numero_de_cliente", "mcomisiones_mantenimiento")   #aqui se deben cargar todos los campos culpables del Data Drifting
+campos_malos  <- c("mpasivos_margen",
+                   "numero_de_cliente",
+                   "mcomisiones_mantenimiento")   #aqui se deben cargar todos los campos culpables del Data Drifting
 
 ksemilla_azar  <- 437626  #Aqui poner la propia semilla
 #------------------------------------------------------------------------------
