@@ -1,0 +1,72 @@
+---
+title: "dolar cotizacion historica"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(data.table)
+```
+
+```{r}
+dolar <- fread("~/code/austral/labo1/labo2021/personal/cotizacion_dolar_historica.csv")
+```
+
+corrijo fechas, nombres de variables y formato de los numeros
+
+```{r}
+dolar %>%
+  .[, Fecha := as.Date(Fecha, format = "%d/%m/%Y")]
+
+dolar <- janitor::clean_names(dolar)
+
+str(dolar)
+# vinieron algunos con coma otros con punto
+
+cols <- names(dolar)[-1]
+dolar[, (cols) := map(.SD, ~ as.numeric(gsub(pattern = ",", replacement = ".", .x))), , .SDcols = cols]
+dolar
+```
+
+reescribo con las correccionesde formato
+
+```{r}
+fwrite(dolar, "~/code/austral/labo1/labo2021/personal/cotizacion_dolar_historica.csv")
+```
+
+promedios
+
+```{r}
+# promedio por mes por año
+dolar[, .(
+  mean_billete_compra = mean(billete_compra),
+  mean_billete_venta = mean(billete_venta),
+  mean_divisa_compra = mean(divisa_compra),
+  mean_divisa_venta = mean(divisa_venta)
+), by = .(year(fecha), month(fecha))] -> medias
+```
+
+Ademas de las medias mensuales de cada cotizacion, calculo la media overall, y agrego
+el mes indice y la foto_mes, para facilitar join.
+
+```{r}
+medias[, overall_mean := rowMeans(.SD), by = .(year, month)]
+#medias[, i_month := ((year - 2018) * 12) + month]
+medias[, foto_mes := year * 100 + month]
+```
+
+```{r}
+fwrite(medias, "labo2021/personal/mean_cotizacion_dolar_historica.csv")
+```
+
