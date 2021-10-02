@@ -1,4 +1,4 @@
-#E1004
+#E1005
 #Necesita para correr en Google Cloud
 #40 GB de memoria RAM
 #256 GB de espacio en el disco local
@@ -260,10 +260,10 @@ dapply  <- copy( dataset[  foto_mes==kmes_apply ] )
 #creo la clase_binaria2   1={ BAJA+2,BAJA+1}  0={CONTINUA}
 dataset[ , clase01:= ifelse( clase_ternaria=="CONTINUA", 0, 1 ) ]
 
-
-
+pesos <- grep("pesos", names(dataset), value = T)
+dolares <- grep("^dolar", names(dataset), value = T)
 #los campos que se van a utilizar
-campos_buenos  <- setdiff( colnames(dataset), c("clase_ternaria","clase01", campos_malos) )
+campos_buenos  <- setdiff( colnames(dataset), c("clase_ternaria","clase01", campos_malos, setdiff(pesos, dolares)) )
 
 #dejo los datos en el formato que necesita LightGBM
 #uso el weight como un truco ESPANTOSO para saber la clase real
