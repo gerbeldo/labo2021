@@ -1,4 +1,4 @@
-#E1003
+#E1004
 #Necesita para correr en Google Cloud
 #40 GB de memoria RAM
 #256 GB de espacio en el disco local
@@ -57,7 +57,7 @@ kBO_iter    <-  100   #cantidad de iteraciones de la Optimizacion Bayesiana
 
 #Aqui se cargan los hiperparametros
 hs <- makeParamSet( 
-         makeNumericParam("learning_rate",    lower=    0.02 , upper=    0.06),
+         makeNumericParam("learning_rate",    lower=    0.1 , upper=    0.5),
          makeNumericParam("feature_fraction", lower=    0.1  , upper=    0.4),
          makeIntegerParam("min_data_in_leaf", lower= 1000L   , upper= 8000L),
          makeIntegerParam("num_leaves",       lower=  100L   , upper= 1024L),
