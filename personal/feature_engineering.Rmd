@@ -161,10 +161,15 @@ dataset <- dataset[foto_mes != 202006]
 Escribo el dataset sin features extra
 
 ```{r}
-fwrite("./datasets/paquete_premium_corregido_ordered_nojune.csv.gz")
+fwrite(dataset, "./datasets/paquete_premium_corregido_ordered_nojune.csv.gz")
 ```
 
 # new features
+
+```{r}
+dataset <- fread("./datasets/2021-09-30_paquete_premium_corregido_ordered_nojune.csv.gz")
+```
+
 
 Defino funcion para calcular el indice de mes (desde el año inicial con indice 1)
 
@@ -194,7 +199,7 @@ dataset[clase_ternaria %chin% c("BAJA+1", "BAJA+2"),.N, by = i_month] %>%
 La idea es normalizarlas al precio del dolar.
 
 ```{r}
-dolar <- fread("./labo2021/personal/mean_cotizacion_dolar_historica.csv")
+dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
 ```
 
 busco las variables en pesos
@@ -212,6 +217,7 @@ Aplico normalizo al overall_mean mensual de la cotizacion historica del dolar
 
 ```{r}
 dataset[, paste0("dolar_norm_", vars_pesos) := .SD / dolar_overall_mean, .SDcols = vars_pesos]
+
 ```
 
 Puedo chequear que este todo bien, sampleando y haciendo la cuentita a mano.
@@ -224,7 +230,10 @@ dataset[sample(1:.N, size = 10),
           Master_mconsumospesos)]
 ```
 
+Antes de escribir la tabla, elimino la variable de la cotizacion del dolar, porque que se yo.
+
 ```{r}
-fwrite("./datasets/corr_ord_nojune_usd.csv.gz")
+dataset[, dolar_overall_mean := NULL]
+fwrite(dataset, "./datasets/2021-10-02_corr_ord_nojune_usd.csv.gz")
 ```
 
