@@ -40,7 +40,7 @@ setwd(directory.root)
 # read
 
 ```{r}
-dataset <- fread(paste0(directory.root, "datasetsOri/paquete_premium.csv.gz"))
+dataset <- fread("./datasets_ori/paquete_premium.csv.gz")
 ```
 
 # errores del dataset
@@ -158,7 +158,73 @@ Elimino mes de junio 2020, ya que esta bastante roto
 dataset <- dataset[foto_mes != 202006]
 ```
 
+Escribo el dataset sin features extra
+
 ```{r}
-fwrite(x = dataset, file = paste0(directory.root, "datasets/2021-09-30_paquete_premium_corregido_ordered_nojune.csv.gz"))
+fwrite("./datasets/paquete_premium_corregido_ordered_nojune.csv.gz")
+```
+
+# new features
+
+Defino funcion para calcular el indice de mes (desde el año inicial con indice 1)
+
+```{r}
+mes <- function(x, init_year) {
+  # returns number of months since jan 1 init_year
+  m <- x %% 100 # extract month
+  y <- (x - m) / 100 # extract year
+  n <- (y - init_year) + 1 # year index (1 based)
+  n * m
+}
+```
+
+Esta variable es identica que foto_mes, pero es mejor para graficar series temporales.
+
+```{r}
+dataset[, i_month := mes(foto_mes, 2018)]
+
+dataset[clase_ternaria %chin% c("BAJA+1", "BAJA+2"),.N, by = i_month] %>% 
+  ggplot(aes(n_mes, N)) + geom_point()
+```
+
+# normalizaciones
+
+## variables en pesos
+
+La idea es normalizarlas al precio del dolar.
+
+```{r}
+dolar <- fread("./labo2021/personal/mean_cotizacion_dolar_historica.csv")
+```
+
+busco las variables en pesos
+
+```{r}
+vars_pesos <- grep("pesos", x = names(dataset), value = T)
+```
+
+Agrego mediante un join la cotizacion del dolar
+```{r}
+dataset[dolar[, .(foto_mes, overall_mean)], on = "foto_mes", dolar_overall_mean := overall_mean]
+```
+
+Aplico normalizo al overall_mean mensual de la cotizacion historica del dolar
+
+```{r}
+dataset[, paste0("dolar_norm_", vars_pesos) := .SD / dolar_overall_mean, .SDcols = vars_pesos]
+```
+
+Puedo chequear que este todo bien, sampleando y haciendo la cuentita a mano.
+
+```{r}
+dataset[sample(1:.N, size = 10),
+        .(foto_mes,
+          dolar_overall_mean,
+          dolar_norm_Master_mconsumospesos,
+          Master_mconsumospesos)]
+```
+
+```{r}
+fwrite("./datasets/corr_ord_nojune_usd.csv.gz")
 ```
 
