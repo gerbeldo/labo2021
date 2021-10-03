@@ -196,6 +196,8 @@ dataset[clase_ternaria %chin% c("BAJA+1", "BAJA+2"),.N, by = i_month] %>%
 
 ## variables en pesos
 
+### normalizar al precio dolar
+
 La idea es normalizarlas al precio del dolar.
 
 ```{r}
@@ -295,7 +297,6 @@ Aplico normalizo al overall_mean mensual de la cotizacion historica del dolar
 
 ```{r}
 dataset[, paste0("dolar_norm_", vars_pesos) := .SD / dolar_overall_mean, .SDcols = vars_pesos]
-
 ```
 
 Puedo chequear que este todo bien, sampleando y haciendo la cuentita a mano.
@@ -312,19 +313,26 @@ Antes de escribir la tabla, elimino la variable de la cotizacion del dolar, porq
 
 ```{r}
 dataset[, dolar_overall_mean := NULL]
-fwrite(dataset, "./datasets/2021-10-02_corr_ord_nojune_usd.csv.gz")
+dataset[, vars_pesos := NULL]
+fwrite(dataset, "./datasets/2021-10-03_corr_ord_nojune_usd.csv.gz")
 ```
 
-## normalizando por la media y desvio, dividiendo por mes
+### normalizando por la media y desvio, dividiendo por mes
 
 ```{r}
 norm <- function(v) {
   as.vector(scale(v))
 }
 
-dataset[, paste("norm", cols, sep = "_") := map(.SD, norm), by = foto_mes, .SDcols = cols]
+dataset[, paste("norm", vars_pesos, sep = "_") := map(.SD, norm),
+        by = foto_mes,
+        .SDcols = vars_pesos]
 ```
 
+```{r}
+dataset[, vars_pesos := NULL]
+fwrite(dataset, "./datsets/2021-10-03_corr_ord_nojune_norm.csv.gz")
+```
 
 # variables lagdelta
 
