@@ -313,7 +313,7 @@ Antes de escribir la tabla, elimino la variable de la cotizacion del dolar, porq
 
 ```{r}
 dataset[, dolar_overall_mean := NULL]
-dataset[, vars_pesos := NULL]
+dataset[, (vars_pesos) := NULL]
 fwrite(dataset, "./datasets/2021-10-03_corr_ord_nojune_usd.csv.gz")
 ```
 
@@ -330,7 +330,7 @@ dataset[, paste("norm", vars_pesos, sep = "_") := map(.SD, norm),
 ```
 
 ```{r}
-dataset[, vars_pesos := NULL]
+dataset[, (vars_pesos) := NULL]
 fwrite(dataset, "./datsets/2021-10-03_corr_ord_nojune_norm.csv.gz")
 ```
 
