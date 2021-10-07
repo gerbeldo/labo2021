@@ -1,6 +1,6 @@
 #E1007
 # normalizo variables escalando por cada mes
-
+# DIO COMO EL ORTO NO REPETIR
 #Necesita para correr en Google Cloud
 #40 GB de memoria RAM
 #256 GB de espacio en el disco local
