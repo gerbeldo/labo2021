@@ -320,18 +320,18 @@ fwrite(dataset, "./datasets/2021-10-03_corr_ord_nojune_usd.csv.gz")
 ### normalizando por la media y desvio, dividiendo por mes
 
 ```{r}
-norm <- function(v) {
-  as.vector(scale(v))
-}
-
-dataset[, paste("norm", vars_pesos, sep = "_") := map(.SD, norm),
-        by = foto_mes,
-        .SDcols = vars_pesos]
+# norm <- function(v) {
+#   as.vector(scale(v))
+# }
+# 
+# dataset[, paste("norm", vars_pesos, sep = "_") := map(.SD, norm),
+#         by = foto_mes,
+#         .SDcols = vars_pesos]
 ```
 
 ```{r}
-dataset[, (vars_pesos) := NULL]
-fwrite(dataset, "./datsets/2021-10-03_corr_ord_nojune_norm.csv.gz")
+# dataset[, (vars_pesos) := NULL]
+# fwrite(dataset, "./datsets/2021-10-03_corr_ord_nojune_norm.csv.gz")
 ```
 
 # variables lagdelta
