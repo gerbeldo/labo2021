@@ -34,25 +34,25 @@ palancas$dummiesNA  <-  FALSE #La idea de Santiago Dellachiesa
 
 palancas$lag1   <- TRUE    #lag de orden 1
 palancas$delta1 <- TRUE    # campo -  lag de orden 1 
-palancas$lag2   <- FALSE
-palancas$delta2 <- FALSE
-palancas$lag3   <- FALSE
-palancas$delta3 <- FALSE
+palancas$lag2   <- TRUE
+palancas$delta2 <- TRUE
+palancas$lag3   <- TRUE
+palancas$delta3 <- TRUE
 palancas$lag4   <- FALSE
 palancas$delta4 <- FALSE
 palancas$lag5   <- FALSE
 palancas$delta5 <- FALSE
-palancas$lag6   <- FALSE
-palancas$delta6 <- FALSE
+palancas$lag6   <- TRUE
+palancas$delta6 <- TRUE
 
-palancas$promedio3  <- FALSE  #promedio  de los ultimos 3 meses
-palancas$promedio6  <- FALSE
+palancas$promedio3  <- TRUE  #promedio  de los ultimos 3 meses
+palancas$promedio6  <- TRUE
 
-palancas$minimo3  <- FALSE  #minimo de los ultimos 3 meses
-palancas$minimo6  <- FALSE
+palancas$minimo3  <- TRUE  #minimo de los ultimos 3 meses
+palancas$minimo6  <- TRUE
 
-palancas$maximo3  <- FALSE  #maximo de los ultimos 3 meses
-palancas$maximo6  <- FALSE
+palancas$maximo3  <- TRUE  #maximo de los ultimos 3 meses
+palancas$maximo6  <- TRUE
 
 palancas$ratiomax3   <- FALSE   #La idea de Daiana Sparta
 palancas$ratiomean6  <- FALSE   #Un derivado de la idea de Daiana Sparta
@@ -210,7 +210,29 @@ Corregir  <- function( dataset )
   dataset[ foto_mes==202011,  tmobile_app  := NA ]
   dataset[ foto_mes==202012,  tmobile_app  := NA ]
   dataset[ foto_mes==202101,  tmobile_app  := NA ]
-
+  
+  # arreglos mios
+  
+  dataset[ foto_mes==202003,  mcuenta_corriente_adicional:= NA ]
+  dataset[ foto_mes==202004,  mcuenta_corriente_adicional:= NA ]
+  dataset[ foto_mes==202005,  mcuenta_corriente_adicional:= NA ]
+  dataset[ foto_mes==202006,  mcuenta_corriente_adicional:= NA ]
+  dataset[ foto_mes==202007,  mcuenta_corriente_adicional:= NA ]
+  dataset[ foto_mes==202008,  mcuenta_corriente_adicional:= NA ]
+  
+  dataset[ foto_mes==202009,  mcuenta_debitos_automaticos:= NA ]
+  dataset[ foto_mes==202010,  mcuenta_debitos_automaticos:= NA ]
+  dataset[ foto_mes==202011,  mcuenta_debitos_automaticos:= NA ]
+  dataset[ foto_mes==202011,  mcuenta_debitos_automaticos:= NA ]
+  
+  dataset[ foto_mes==201904,  Master_mfinanciacion_limite:= NA ]
+  
+  dataset[ foto_mes %in% c(202004, 202005),  Master_mpagominimo := NA ]
+  
+  dataset[ foto_mes %in% c(202004, 202005),  Visa_mpagominimo := NA ]
+  
+  dataset[ foto_mes >= 201801 & foto_mes <= 201806, tpaquete2 := NA]
+  
   ReportarCampos( dataset )
 }
 #------------------------------------------------------------------------------
@@ -218,6 +240,94 @@ Corregir  <- function( dataset )
 
 AgregarVariables  <- function( dataset )
 {
+  # cargo dataset pre-calculado con cotizacion promedio del dolar mensual
+  dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
+  # tomo variables en pesos
+  vars_pesos <- c(
+    "mrentabilidad",
+    "mrentabilidad_annual",
+    "mcomisiones",
+    "mactivos_margen",
+    "mpasivos_margen",
+    "mcuenta_corriente_adicional",
+    "mcuenta_corriente",
+    "mcaja_ahorro",
+    "mcaja_ahorro_adicional",
+    "mcaja_ahorro_dolares",
+    "mdescubierto_preacordado",
+    "mcuentas_saldo",
+    "mautoservicio",
+    "mtarjeta_visa_consumo",
+    "mtarjeta_master_consumo",
+    "mprestamos_personales",
+    "mprestamos_prendarios",
+    "mprestamos_hipotecarios",
+    "mplazo_fijo_dolares",
+    "mplazo_fijo_pesos",
+    "minversion1_pesos",
+    "minversion1_dolares",
+    "minversion2",
+    "mpayroll",
+    "mpayroll2",
+    "mcuenta_debitos_automaticos",
+    "mttarjeta_visa_debitos_automaticos",
+    "mttarjeta_master_debitos_automaticos",
+    "mpagodeservicios",
+    "mpagomiscuentas",
+    "mcajeros_propios_descuentos",
+    "mtarjeta_visa_descuentos",
+    "mtarjeta_master_descuentos",
+    "mcomisiones_mantenimiento",
+    "mcomisiones_otras",
+    "mforex_buy",
+    "mforex_sell",
+    "mtransferencias_recibidas",
+    "mtransferencias_emitidas",
+    "mextraccion_autoservicio",
+    "mcheques_depositados",
+    "mcheques_emitidos",
+    "mcheques_depositados_rechazados",
+    "mcheques_emitidos_rechazados",
+    "matm",
+    "matm_other",
+    "Master_mfinanciacion_limite",
+    "Master_msaldototal",
+    "Master_msaldopesos",
+    "Master_msaldodolares",
+    "Master_mconsumospesos",
+    "Master_mconsumosdolares",
+    "Master_mlimitecompra",
+    "Master_madelantopesos",
+    "Master_madelantodolares",
+    "Master_mpagado",
+    "Master_mpagospesos",
+    "Master_mpagosdolares",
+    "Master_mconsumototal",
+    "Master_mpagominimo",
+    "Visa_mfinanciacion_limite",
+    "Visa_msaldototal",
+    "Visa_msaldopesos",
+    "Visa_msaldodolares",
+    "Visa_mconsumospesos",
+    "Visa_mconsumosdolares",
+    "Visa_mlimitecompra",
+    "Visa_madelantopesos",
+    "Visa_madelantodolares",
+    "Visa_mpagado",
+    "Visa_mpagospesos",
+    "Visa_mpagosdolares",
+    "Visa_mconsumototal",
+    "Visa_mpagominimo"
+  )
+  
+  # join el valor del dolar correspondiente
+  dataset[dolar[, .(foto_mes, overall_mean)], on = "foto_mes", dolar_overall_mean := overall_mean]
+  # normalizo las variables en pesos por el valor del dolar, reemplazando la columna por su normalizacion
+  dataset[, (vars_pesos) := .SD / dolar_overall_mean, .SDcols = vars_pesos]
+  # elimino el valor del dolar.
+  dataset[, dolar_overall_mean := NULL]
+  
+  
   #INICIO de la seccion donde se deben hacer cambios con variables nuevas
   #se crean los nuevos campos para MasterCard  y Visa, teniendo en cuenta los NA's
   #varias formas de combinar Visa_status y Master_status
@@ -278,7 +388,33 @@ AgregarVariables  <- function( dataset )
   dataset[ , mvr_mpagominimo         := mv_mpagominimo  / mv_mlimitecompra ]
 
   #Aqui debe usted agregar sus propias nuevas variables
-
+  
+  # plata total y proporciones que entran
+  dataset[, total_payroll := mpayroll + mpayroll2]
+  dataset[, ratio_payroll := mpayroll / total_payroll]
+  dataset[, ratio_payroll2 := mpayroll2 / total_payroll]
+  
+  # proporcion de la vida adulta que fue cliente
+  dataset[, meses_adulto := (cliente_edad - 18) * 12]
+  dataset[, prop_como_cliente := cliente_antiguedad / meses_adulto]
+  
+  # totales
+  # de inversion. puedo sumar pesos y dolares porque los pesos los pase a dolares
+  dataset[, total_inversiones := mplazo_fijo_dolares + mplazo_fijo_pesos + minversion1_pesos + minversion1_dolares + minversion2]
+  dataset[, prop_mplazo_fijo_dolares := mplazo_fijo_dolares / total_inversiones]
+  dataset[, prop_mplazo_fijo_pesos := mplazo_fijo_pesos / total_inversiones]
+  dataset[, prop_minversion1_pesos := minversion1_pesos / total_inversiones]
+  dataset[, prop_minversion1_dolares := minversion1_dolares / total_inversiones]
+  dataset[, prop_mininversion2 := minversion2 / total_inversiones]
+  
+  # prestamos
+  dataset[, total_prestamos := mprestamos_personales + mprestamos_prendarios + mprestamos_hipotecarios]
+  dataset[, prop_prestamos_p := mprestamos_personales / total_prestamos]
+  dataset[, prop_prestamos_pr := mprestamos_prendarios / total_prestamos]
+  dataset[, prop_prestamos_h := mprestamos_hipotecarios / total_prestamos]
+  
+  
+  
   #valvula de seguridad para evitar valores infinitos
   #paso los infinitos a NULOS
   infinitos      <- lapply(names(dataset),function(.name) dataset[ , sum(is.infinite(get(.name)))])
