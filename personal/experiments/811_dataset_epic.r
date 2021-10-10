@@ -22,7 +22,7 @@ setwd( directory.root )
 
 palancas  <- list()  #variable con las palancas para activar/desactivar
 
-palancas$version  <- "v002"   #Muy importante, ir cambiando la version
+palancas$version  <- "v003"   #Muy importante, ir cambiando la version
 
 palancas$variablesdrift  <- c()   #aqui van las columnas que se quieren eliminar
 
@@ -102,6 +102,17 @@ DummiesNA  <- function( dataset )
 
   ReportarCampos( dataset )
 }
+#------------------------------------------------------------------------------
+# create all v all ratios
+
+create_ratios <- function(.data) {
+  combn(.data, 2, FUN = function(x) list(x[[2]] / x[[1]]))
+}
+
+create_ratio_names <- function(.data, cols) {
+  combn(names(.data[,..cols]), 2, FUN = function(x) paste(x[[2]], x[[1]], sep="_"))
+}
+
 #------------------------------------------------------------------------------
 #Corrige poniendo a NA las variables que en ese mes estan dañadas
 
@@ -320,6 +331,8 @@ AgregarVariables  <- function( dataset )
     "Visa_mpagominimo"
   )
   
+
+  
   # join el valor del dolar correspondiente
   dataset[dolar[, .(foto_mes, overall_mean)], on = "foto_mes", dolar_overall_mean := overall_mean]
   # normalizo las variables en pesos por el valor del dolar, reemplazando la columna por su normalizacion
@@ -413,6 +426,24 @@ AgregarVariables  <- function( dataset )
   dataset[, prop_prestamos_pr := mprestamos_prendarios / total_prestamos]
   dataset[, prop_prestamos_h := mprestamos_hipotecarios / total_prestamos]
   
+  # most important variables. Use to calculate all vs all ratios
+  important_vars <- c(
+    "ctrx_quarter",
+    "cpayroll_trx",
+    "mcuenta_corriente",
+    "ctarjeta_visa_transacciones",
+    "mtarjeta_visa_consumo",
+    "mcaja_ahorro",
+    "mcuentas_saldo",
+    "mdescubierto_preacordado",
+    "mactivos_margen",
+    "mpayroll",
+    "Visa_mpagospesos"
+  )
+  
+  ratio_names <- create_ratio_names(dataset, important_vars)
+  
+  dataset[, (ratio_names) := create_ratios(dataset[, .SD, .SDcols = important_vars])]
   
   
   #valvula de seguridad para evitar valores infinitos
