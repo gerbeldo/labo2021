@@ -1,0 +1,115 @@
+---
+title: "title"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(data.table)
+```
+
+# prototyping
+
+```{r}
+data("iris")
+d <- as.data.table(iris)
+num_cols <- setdiff(names(d), "Species")
+```
+
+```{r}
+
+# calculates ratios between vars when i!=j
+res <- do.call(cbind, combn(d[,..num_cols], 2, FUN= function(x) list(x[[2]]/x[[1]])))
+res <- as.data.table(res)
+
+# generate ratio names
+ratio_names <- combn(names(d[,..num_cols]), 2, FUN = function(x) paste(x[[2]], x[[1]], sep="_"))
+
+names(res) <- ratio_names
+```
+
+
+Check if it's OK
+```{r}
+res$Sepal.Width_Sepal.Length == d[, Sepal.Width / Sepal.Length]
+```
+
+Package as a function for data.table. Important to return a list, to be able to assign to 
+character vector of ratio names.
+
+```{r}
+create_ratios <- function(.data) {
+ combn(.data, 2, FUN = function(x) list(x[[2]] / x[[1]]))
+}
+```
+
+```{r}
+d[, (ratio_names) := create_ratios(d[, .SD, .SDcols = num_cols])]
+```
+
+# implementation
+
+Read a couple of importances files.
+
+```{r}
+setwd("~/Downloads/importances/")
+
+a <- fread("work_E1006_E1006_E1006_751_lgb_bin2_histcorregido_imp_2.txt")
+b <- fread("work_E1006_E1006_E1006_751_lgb_bin2_histcorregido_imp_8.txt")
+c <- fread("work_E1008_E1008_822_epic_imp_002.txt")
+d <- fread("work_E1008_E1008_822_epic_imp_017.txt")
+e <- fread("work_E1008_E1008_822_epic_imp_033.txt")
+```
+
+delete dollar normalization prefix.
+```{r}
+a[, Feature := gsub("^dolar_norm_", "", Feature)]
+b[, Feature := gsub("^dolar_norm_", "", Feature)]
+```
+
+calculate intersections between several objects
+
+```{r}
+to <- 40
+
+Reduce(intersect, list(
+  #a[1:to, Feature],
+  b[1:to, Feature],
+  c[1:to, Feature],
+  d[1:to, Feature]#,
+  #e[1:to, Feature]
+)) -> important_vars
+```
+
+# apply to dataset
+
+extracted important vars. among first 40 of each set used.
+
+```{r}
+important_vars <- c(
+  "ctrx_quarter",
+  "cpayroll_trx",
+  "mcuenta_corriente",
+  "ctarjeta_visa_transacciones",
+  "mtarjeta_visa_consumo",
+  "mcaja_ahorro",
+  "mcuentas_saldo",
+  "mdescubierto_preacordado",
+  "mactivos_margen",
+  "mpayroll",
+  "Visa_mpagospesos"
+)
+```
+
+
