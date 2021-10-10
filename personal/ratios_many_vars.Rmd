@@ -52,6 +52,10 @@ character vector of ratio names.
 create_ratios <- function(.data) {
  combn(.data, 2, FUN = function(x) list(x[[2]] / x[[1]]))
 }
+
+create_ratio_names <- function(.data, cols) {
+  combn(names(.data[,..cols]), 2, FUN = function(x) paste(x[[2]], x[[1]], sep="_"))
+}
 ```
 
 ```{r}
