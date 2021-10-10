@@ -30,7 +30,7 @@ palancas$corregir <-  TRUE    # TRUE o FALSE
 
 palancas$nuevasvars <-  TRUE  #si quiero hacer Feature Engineering manual
 
-palancas$dummiesNA  <-  FALSE #La idea de Santiago Dellachiesa
+palancas$dummiesNA  <-  TRUE #La idea de Santiago Dellachiesa
 
 palancas$lag1   <- TRUE    #lag de orden 1
 palancas$delta1 <- TRUE    # campo -  lag de orden 1 
@@ -54,8 +54,8 @@ palancas$minimo6  <- TRUE
 palancas$maximo3  <- TRUE  #maximo de los ultimos 3 meses
 palancas$maximo6  <- TRUE
 
-palancas$ratiomax3   <- FALSE   #La idea de Daiana Sparta
-palancas$ratiomean6  <- FALSE   #Un derivado de la idea de Daiana Sparta
+palancas$ratiomax3   <- TRUE   #La idea de Daiana Sparta
+palancas$ratiomean6  <- TRUE   #Un derivado de la idea de Daiana Sparta
 
 palancas$tendencia6  <- TRUE    #Great power comes with great responsability
 
