@@ -56,7 +56,7 @@ kapply_mes       <- c(202101)  #El mes donde debo aplicar el modelo
 ktest_mes_hasta  <- 202011  #Esto es lo que uso para testing
 ktest_mes_desde  <- 202011
 
-ktrain_subsampling  <- 0.1   #el undersampling que voy a hacer de los continua
+ktrain_subsampling  <- 0.2   #el undersampling que voy a hacer de los continua
 
 ktrain_mes_hasta    <- 202010  #Obviamente, solo puedo entrenar hasta 202011
 ktrain_mes_desde    <- 201901  
