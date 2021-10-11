@@ -696,7 +696,7 @@ fganancia_lgbm_meseta  <- function(probs, datos)
 CanaritosImportancia  <- function( dataset )
 {
 
-  gc()
+  #gc()
   dataset[ , clase01:= ifelse( clase_ternaria=="CONTINUA", 0, 1 ) ]
 
   for( i  in 1:(ncol(dataset)/5))  dataset[ , paste0("canarito", i ) :=  runif( nrow(dataset))]
@@ -755,7 +755,7 @@ CanaritosImportancia  <- function( dataset )
   }
 
   rm( dtrain, dvalid )
-  gc()
+  #gc()
 
   ReportarCampos( dataset )
 }
