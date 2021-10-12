@@ -30,7 +30,7 @@ palancas$corregir <-  TRUE    # TRUE o FALSE
 
 palancas$nuevasvars <-  TRUE  #si quiero hacer Feature Engineering manual
 
-palancas$dummiesNA  <-  TRUE #La idea de Santiago Dellachiesa
+palancas$dummiesNA  <-  FALSE #La idea de Santiago Dellachiesa
 
 palancas$lag1   <- TRUE    #lag de orden 1
 palancas$delta1 <- TRUE    # campo -  lag de orden 1 
@@ -772,38 +772,56 @@ correr_todo  <- function( palancas )
 
   if( length(palancas$variablesdrift) > 0 )   DriftEliminar( dataset, palancas$variablesdrift )
 
-  if( palancas$dummiesNA )  DummiesNA( dataset )  #esta linea debe ir ANTES de Corregir  !!
+  if( palancas$dummiesNA )  {DummiesNA( dataset )  #esta linea debe ir ANTES de Corregir  !!
+  print("added dummies")}
 
-  if( palancas$corregir )  Corregir( dataset )  #esta linea debe ir DESPUES de  DummiesNA
+  if( palancas$corregir )  {Corregir( dataset )  #esta linea debe ir DESPUES de  DummiesNA
+  print("corrected dataset")}
 
-  if( palancas$nuevasvars )  AgregarVariables( dataset )
-
+  if( palancas$nuevasvars )  {AgregarVariables( dataset )
+  print("added new vars")}
   cols_analiticas  <- setdiff( colnames(dataset),  c("numero_de_cliente","foto_mes","mes","clase_ternaria") )
 
-  if( palancas$lag1 )   Lags( dataset, cols_analiticas, 1, palancas$delta1 )
-  if( palancas$lag2 )   Lags( dataset, cols_analiticas, 2, palancas$delta2 )
-  if( palancas$lag3 )   Lags( dataset, cols_analiticas, 3, palancas$delta3 )
-  if( palancas$lag4 )   Lags( dataset, cols_analiticas, 4, palancas$delta4 )
-  if( palancas$lag5 )   Lags( dataset, cols_analiticas, 5, palancas$delta5 )
-  if( palancas$lag6 )   Lags( dataset, cols_analiticas, 6, palancas$delta6 )
+  if( palancas$lag1 )   {Lags( dataset, cols_analiticas, 1, palancas$delta1 )
+  print("added lag 1") }
+  if( palancas$lag2 )   {Lags( dataset, cols_analiticas, 2, palancas$delta2 )
+  print("added lag 2")}
+  if( palancas$lag3 )   {Lags( dataset, cols_analiticas, 3, palancas$delta3 )
+  print("added lag 3")}
+  if( palancas$lag4 )   {Lags( dataset, cols_analiticas, 4, palancas$delta4 )
+  print("added lag 4")}
+  if( palancas$lag5 )   {Lags( dataset, cols_analiticas, 5, palancas$delta5 )
+  print("added lag 5")}
+  if( palancas$lag6 )   {Lags( dataset, cols_analiticas, 6, palancas$delta6 )
+  print("added lag 6")}
 
-  if( palancas$promedio3 )  Promedios( dataset, cols_analiticas, 3 )
-  if( palancas$promedio6 )  Promedios( dataset, cols_analiticas, 6 )
+  if( palancas$promedio3 )  {Promedios( dataset, cols_analiticas, 3 )
+  print("added mean 3")}
+  if( palancas$promedio6 )  {Promedios( dataset, cols_analiticas, 6 )
+  print("added mean 6")}
 
-  if( palancas$minimo3 )  Minimos( dataset, cols_analiticas, 3 )
-  if( palancas$minimo6 )  Minimos( dataset, cols_analiticas, 6 )
+  if( palancas$minimo3 )  {Minimos( dataset, cols_analiticas, 3 )
+  print("added min 3")}
+  if( palancas$minimo6 )  {Minimos( dataset, cols_analiticas, 6 )
+  print("added min 6")}
 
-  if( palancas$maximo3 )  Maximos( dataset, cols_analiticas, 3 )
-  if( palancas$maximo6 )  Maximos( dataset, cols_analiticas, 6 )
+  if( palancas$maximo3 )  {Maximos( dataset, cols_analiticas, 3 )
+  print("added max 3")}
+  if( palancas$maximo6 )  {Maximos( dataset, cols_analiticas, 6 )
+  print("added max 6")}
 
-  if(palancas$ratiomax3)  RatioMax(  dataset, cols_analiticas, 3) #La idea de Daiana Sparta
-  if(palancas$ratiomean6) RatioMean( dataset, cols_analiticas, 6) #Derivado de la idea de Daiana Sparta
+  if(palancas$ratiomax3)  {RatioMax(  dataset, cols_analiticas, 3) #La idea de Daiana Sparta
+  print("added ratio max 3")}
+  if(palancas$ratiomean6) {RatioMean( dataset, cols_analiticas, 6) #Derivado de la idea de Daiana Sparta
+  print("added ratio max 6")}
 
 
-  if( palancas$tendencia6 )  Tendencia( dataset, cols_analiticas)
+  if( palancas$tendencia6 )  {Tendencia( dataset, cols_analiticas)
+  print("added tendencia 6")}
 
 
-  if( palancas$canaritosimportancia )  CanaritosImportancia( dataset )
+  if( palancas$canaritosimportancia )  {CanaritosImportancia( dataset )
+  print("canaritos importancia")}
 
 
 
