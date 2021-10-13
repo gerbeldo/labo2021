@@ -22,7 +22,7 @@ setwd( directory.root )
 
 palancas  <- list()  #variable con las palancas para activar/desactivar
 
-palancas$version  <- "v004"   #Muy importante, ir cambiando la version
+palancas$version  <- "v005"   #Muy importante, ir cambiando la version
 
 palancas$variablesdrift  <- c()   #aqui van las columnas que se quieren eliminar
 
@@ -426,7 +426,7 @@ AgregarVariables  <- function( dataset )
   dataset[, prop_prestamos_pr := mprestamos_prendarios / total_prestamos]
   dataset[, prop_prestamos_h := mprestamos_hipotecarios / total_prestamos]
   
-  most important variables. Use to calculate all vs all ratios
+# most important variables. Use to calculate all vs all ratios
   important_vars <- c(
     "ctrx_quarter",
     "cpayroll_trx",
