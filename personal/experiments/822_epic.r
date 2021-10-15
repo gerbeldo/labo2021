@@ -49,14 +49,14 @@ kexperimento  <- NA   #NA si se corre la primera vez, un valor concreto si es pa
 
 kscript         <- "822_epic"
 
-karch_dataset    <- "./datasets/dataset_epic_v003.csv.gz"   #este dataset se genero en el script 811_dataset_epic.r
+karch_dataset    <- "./datasets/dataset_epic_v008.csv.gz"   #este dataset se genero en el script 811_dataset_epic.r
 
 kapply_mes       <- c(202101)  #El mes donde debo aplicar el modelo
 
 ktest_mes_hasta  <- 202011  #Esto es lo que uso para testing
 ktest_mes_desde  <- 202011
 
-ktrain_subsampling  <- 0.2   #el undersampling que voy a hacer de los continua
+ktrain_subsampling  <- 0.1   #el undersampling que voy a hacer de los continua
 
 ktrain_mes_hasta    <- 202010  #Obviamente, solo puedo entrenar hasta 202011
 ktrain_mes_desde    <- 201901  
@@ -77,9 +77,9 @@ hs <- makeParamSet(
          makeIntegerParam("num_leaves",       lower=  100L   , upper= 1024L)
         )
 
-campos_malos  <- c("foto_mes", "tpaquete3", "mcomisiones_mantenimiento")   #aqui se deben cargar todos los campos culpables del Data Drifting
+campos_malos  <- c("foto_mes", "tpaquete3")   #aqui se deben cargar todos los campos culpables del Data Drifting
 
-ksemilla_azar  <- 437626  #Aqui poner la propia semilla
+ksemilla_azar  <- 4376261  #Aqui poner la propia semilla
 #------------------------------------------------------------------------------
 #Funcion que lleva el registro de los experimentos
 
