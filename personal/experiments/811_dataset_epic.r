@@ -22,7 +22,7 @@ setwd( directory.root )
 
 palancas  <- list()  #variable con las palancas para activar/desactivar
 
-palancas$version  <- "v005"   #Muy importante, ir cambiando la version
+palancas$version  <- "v008"   #Muy importante, ir cambiando la version
 
 palancas$variablesdrift  <- c()   #aqui van las columnas que se quieren eliminar
 
@@ -30,7 +30,7 @@ palancas$corregir <-  TRUE    # TRUE o FALSE
 
 palancas$nuevasvars <-  TRUE  #si quiero hacer Feature Engineering manual
 
-palancas$dummiesNA  <-  TRUE #La idea de Santiago Dellachiesa
+palancas$dummiesNA  <-  FALSE #La idea de Santiago Dellachiesa
 
 palancas$lag1   <- TRUE    #lag de orden 1
 palancas$delta1 <- TRUE    # campo -  lag de orden 1 
@@ -38,18 +38,18 @@ palancas$lag2   <- TRUE
 palancas$delta2 <- TRUE
 palancas$lag3   <- TRUE
 palancas$delta3 <- TRUE
-palancas$lag4   <- FALSE
-palancas$delta4 <- FALSE
-palancas$lag5   <- FALSE
-palancas$delta5 <- FALSE
+palancas$lag4   <- TRUE
+palancas$delta4 <- TRUE
+palancas$lag5   <- TRUE
+palancas$delta5 <- TRUE
 palancas$lag6   <- TRUE
 palancas$delta6 <- TRUE
 
 palancas$promedio3  <- TRUE  #promedio  de los ultimos 3 meses
 palancas$promedio6  <- TRUE
 
-palancas$minimo3  <- TRUE  #minimo de los ultimos 3 meses
-palancas$minimo6  <- TRUE
+palancas$minimo3  <- FALSE  #minimo de los ultimos 3 meses
+palancas$minimo6  <- FALSE
 
 palancas$maximo3  <- FALSE  #maximo de los ultimos 3 meses
 palancas$maximo6  <- FALSE
@@ -57,7 +57,7 @@ palancas$maximo6  <- FALSE
 palancas$ratiomax3   <- FALSE   #La idea de Daiana Sparta
 palancas$ratiomean6  <- FALSE   #Un derivado de la idea de Daiana Sparta
 
-palancas$tendencia6  <- TRUE    #Great power comes with great responsability
+palancas$tendencia6  <- FALSE    #Great power comes with great responsability
 
 
 palancas$canaritosimportancia  <- TRUE  #si me quedo solo con lo mas importante de canaritosimportancia
@@ -252,93 +252,93 @@ Corregir  <- function( dataset )
 AgregarVariables  <- function( dataset )
 {
   # cargo dataset pre-calculado con cotizacion promedio del dolar mensual
-  dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
-  # tomo variables en pesos
-  vars_pesos <- c(
-    "mrentabilidad",
-    "mrentabilidad_annual",
-    "mcomisiones",
-    "mactivos_margen",
-    "mpasivos_margen",
-    "mcuenta_corriente_adicional",
-    "mcuenta_corriente",
-    "mcaja_ahorro",
-    "mcaja_ahorro_adicional",
-    "mcaja_ahorro_dolares",
-    "mdescubierto_preacordado",
-    "mcuentas_saldo",
-    "mautoservicio",
-    "mtarjeta_visa_consumo",
-    "mtarjeta_master_consumo",
-    "mprestamos_personales",
-    "mprestamos_prendarios",
-    "mprestamos_hipotecarios",
-    "mplazo_fijo_dolares",
-    "mplazo_fijo_pesos",
-    "minversion1_pesos",
-    "minversion1_dolares",
-    "minversion2",
-    "mpayroll",
-    "mpayroll2",
-    "mcuenta_debitos_automaticos",
-    "mttarjeta_visa_debitos_automaticos",
-    "mttarjeta_master_debitos_automaticos",
-    "mpagodeservicios",
-    "mpagomiscuentas",
-    "mcajeros_propios_descuentos",
-    "mtarjeta_visa_descuentos",
-    "mtarjeta_master_descuentos",
-    "mcomisiones_mantenimiento",
-    "mcomisiones_otras",
-    "mforex_buy",
-    "mforex_sell",
-    "mtransferencias_recibidas",
-    "mtransferencias_emitidas",
-    "mextraccion_autoservicio",
-    "mcheques_depositados",
-    "mcheques_emitidos",
-    "mcheques_depositados_rechazados",
-    "mcheques_emitidos_rechazados",
-    "matm",
-    "matm_other",
-    "Master_mfinanciacion_limite",
-    "Master_msaldototal",
-    "Master_msaldopesos",
-    "Master_msaldodolares",
-    "Master_mconsumospesos",
-    "Master_mconsumosdolares",
-    "Master_mlimitecompra",
-    "Master_madelantopesos",
-    "Master_madelantodolares",
-    "Master_mpagado",
-    "Master_mpagospesos",
-    "Master_mpagosdolares",
-    "Master_mconsumototal",
-    "Master_mpagominimo",
-    "Visa_mfinanciacion_limite",
-    "Visa_msaldototal",
-    "Visa_msaldopesos",
-    "Visa_msaldodolares",
-    "Visa_mconsumospesos",
-    "Visa_mconsumosdolares",
-    "Visa_mlimitecompra",
-    "Visa_madelantopesos",
-    "Visa_madelantodolares",
-    "Visa_mpagado",
-    "Visa_mpagospesos",
-    "Visa_mpagosdolares",
-    "Visa_mconsumototal",
-    "Visa_mpagominimo"
-  )
-  
-
-  
-  # join el valor del dolar correspondiente
-  dataset[dolar[, .(foto_mes, overall_mean)], on = "foto_mes", dolar_overall_mean := overall_mean]
-  # normalizo las variables en pesos por el valor del dolar, reemplazando la columna por su normalizacion
-  dataset[, (vars_pesos) := .SD / dolar_overall_mean, .SDcols = vars_pesos]
-  # elimino el valor del dolar.
-  dataset[, dolar_overall_mean := NULL]
+  # dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
+  # # tomo variables en pesos
+  # vars_pesos <- c(
+  #   "mrentabilidad",
+  #   "mrentabilidad_annual",
+  #   "mcomisiones",
+  #   "mactivos_margen",
+  #   "mpasivos_margen",
+  #   "mcuenta_corriente_adicional",
+  #   "mcuenta_corriente",
+  #   "mcaja_ahorro",
+  #   "mcaja_ahorro_adicional",
+  #   "mcaja_ahorro_dolares",
+  #   "mdescubierto_preacordado",
+  #   "mcuentas_saldo",
+  #   "mautoservicio",
+  #   "mtarjeta_visa_consumo",
+  #   "mtarjeta_master_consumo",
+  #   "mprestamos_personales",
+  #   "mprestamos_prendarios",
+  #   "mprestamos_hipotecarios",
+  #   "mplazo_fijo_dolares",
+  #   "mplazo_fijo_pesos",
+  #   "minversion1_pesos",
+  #   "minversion1_dolares",
+  #   "minversion2",
+  #   "mpayroll",
+  #   "mpayroll2",
+  #   "mcuenta_debitos_automaticos",
+  #   "mttarjeta_visa_debitos_automaticos",
+  #   "mttarjeta_master_debitos_automaticos",
+  #   "mpagodeservicios",
+  #   "mpagomiscuentas",
+  #   "mcajeros_propios_descuentos",
+  #   "mtarjeta_visa_descuentos",
+  #   "mtarjeta_master_descuentos",
+  #   "mcomisiones_mantenimiento",
+  #   "mcomisiones_otras",
+  #   "mforex_buy",
+  #   "mforex_sell",
+  #   "mtransferencias_recibidas",
+  #   "mtransferencias_emitidas",
+  #   "mextraccion_autoservicio",
+  #   "mcheques_depositados",
+  #   "mcheques_emitidos",
+  #   "mcheques_depositados_rechazados",
+  #   "mcheques_emitidos_rechazados",
+  #   "matm",
+  #   "matm_other",
+  #   "Master_mfinanciacion_limite",
+  #   "Master_msaldototal",
+  #   "Master_msaldopesos",
+  #   "Master_msaldodolares",
+  #   "Master_mconsumospesos",
+  #   "Master_mconsumosdolares",
+  #   "Master_mlimitecompra",
+  #   "Master_madelantopesos",
+  #   "Master_madelantodolares",
+  #   "Master_mpagado",
+  #   "Master_mpagospesos",
+  #   "Master_mpagosdolares",
+  #   "Master_mconsumototal",
+  #   "Master_mpagominimo",
+  #   "Visa_mfinanciacion_limite",
+  #   "Visa_msaldototal",
+  #   "Visa_msaldopesos",
+  #   "Visa_msaldodolares",
+  #   "Visa_mconsumospesos",
+  #   "Visa_mconsumosdolares",
+  #   "Visa_mlimitecompra",
+  #   "Visa_madelantopesos",
+  #   "Visa_madelantodolares",
+  #   "Visa_mpagado",
+  #   "Visa_mpagospesos",
+  #   "Visa_mpagosdolares",
+  #   "Visa_mconsumototal",
+  #   "Visa_mpagominimo"
+  # )
+  # 
+  # 
+  # 
+  # # join el valor del dolar correspondiente
+  # dataset[dolar[, .(foto_mes, overall_mean)], on = "foto_mes", dolar_overall_mean := overall_mean]
+  # # normalizo las variables en pesos por el valor del dolar, reemplazando la columna por su normalizacion
+  # dataset[, (vars_pesos) := .SD / dolar_overall_mean, .SDcols = vars_pesos]
+  # # elimino el valor del dolar.
+  # dataset[, dolar_overall_mean := NULL]
   
   
   #INICIO de la seccion donde se deben hacer cambios con variables nuevas
@@ -427,17 +427,43 @@ AgregarVariables  <- function( dataset )
   dataset[, prop_prestamos_h := mprestamos_hipotecarios / total_prestamos]
   
 # most important variables. Use to calculate all vs all ratios
+  # important_vars <- c(
+  #   "ctrx_quarter",
+  #   "cpayroll_trx",
+  #   "mcuenta_corriente",
+  #   "ctarjeta_visa_transacciones",
+  #   "mtarjeta_visa_consumo",
+  #   "mcaja_ahorro",
+  #   "mcuentas_saldo",
+  #   "mdescubierto_preacordado",
+  #   "mactivos_margen",
+  #   "mpayroll",
+  #   "Visa_mpagospesos"
+  # )
+  
   important_vars <- c(
     "ctrx_quarter",
-    "cpayroll_trx",
-    "mcuenta_corriente",
+    "mcuentas_saldo",
     "ctarjeta_visa_transacciones",
+    "Visa_msaldopesos",
+    "mpayroll",
     "mtarjeta_visa_consumo",
     "mcaja_ahorro",
-    "mcuentas_saldo",
-    "mdescubierto_preacordado",
+    "mcuenta_corriente",
+    "cpayroll_trx",
+    "mprestamos_personales",
     "mactivos_margen",
-    "mpayroll",
+    "ctarjeta_debito_transacciones",
+    "mrentabilidad",
+    "Visa_mpagospesos",
+    "mautoservicio",
+    "Visa_mconsumospesos",
+    "mrentabilidad_annual",
+    "Visa_mfinanciacion_limite",
+    "Master_mfinanciacion_limite",
+    "cliente_antiguedad",
+    "mcomisiones",
+    "mdescubierto_preacordado",
     "Visa_mpagospesos"
   )
 
