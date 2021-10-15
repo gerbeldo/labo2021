@@ -455,7 +455,6 @@ AgregarVariables  <- function( dataset )
     "mactivos_margen",
     "ctarjeta_debito_transacciones",
     "mrentabilidad",
-    "Visa_mpagospesos",
     "mautoservicio",
     "Visa_mconsumospesos",
     "mrentabilidad_annual",
@@ -469,7 +468,7 @@ AgregarVariables  <- function( dataset )
 
   ratio_names <- create_ratio_names(dataset, important_vars)
 
-  dataset[, (ratio_names) := create_ratios(dataset[, .SD, .SDcols = important_vars])]
+  dataset[, (paste0("rat_", ratio_names)) := create_ratios(dataset[, .SD, .SDcols = important_vars])]
   
   
   #valvula de seguridad para evitar valores infinitos
