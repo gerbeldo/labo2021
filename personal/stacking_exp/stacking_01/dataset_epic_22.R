@@ -5,7 +5,7 @@
 
 
 #limpio la memoria
-rm( list=ls() )  #remove all objects
+#rm( list=ls() )  #remove all objects
 gc()             #garbage collection
 
 require("data.table")
@@ -13,12 +13,12 @@ require("Rcpp")
 require("rlist")
 require("yaml")
 
-#require("lightgbm")
+require("lightgbm")
 
 
 #defino la carpeta donde trabajo
-#directory.root  <-  "~/buckets/b1/"  #Google Cloud
-directory.root <- "~/code/austral/labo1/"
+directory.root  <-  "~/buckets/b1/"  #Google Cloud
+#directory.root <- "~/code/austral/labo1/"
 setwd( directory.root )
 
 palancas  <- list()  #variable con las palancas para activar/desactivar
@@ -253,8 +253,8 @@ Corregir  <- function( dataset )
 AgregarVariables  <- function( dataset )
 {
   # cargo dataset pre-calculado con cotizacion promedio del dolar mensual
-  #dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
-  dolar <- fread("~/code/austral/labo1/labo2021/personal/mean_cotizacion_dolar_historica.csv")
+  dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
+  #dolar <- fread("~/code/austral/labo1/labo2021/personal/mean_cotizacion_dolar_historica.csv")
   # # tomo variables en pesos
   vars_pesos <- c(
     "mrentabilidad",
