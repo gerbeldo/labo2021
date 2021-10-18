@@ -23,33 +23,33 @@ setwd( directory.root )
 
 palancas  <- list()  #variable con las palancas para activar/desactivar
 
-palancas$version  <- "v008"   #Muy importante, ir cambiando la version
+palancas$version  <- "v021"   #Muy importante, ir cambiando la version
 
 palancas$variablesdrift  <- c()   #aqui van las columnas que se quieren eliminar
 
 palancas$corregir <-  TRUE    # TRUE o FALSE
 
-palancas$nuevasvars <-  FALSE  #si quiero hacer Feature Engineering manual
+palancas$nuevasvars <-  TRUE  #si quiero hacer Feature Engineering manual
 
 palancas$dummiesNA  <-  FALSE #La idea de Santiago Dellachiesa
 
 palancas$lag1   <- FALSE    #lag de orden 1
 palancas$delta1 <- FALSE    # campo -  lag de orden 1 
-palancas$lag2   <- FALSE
-palancas$delta2 <- FALSE
+palancas$lag2   <- TRUE
+palancas$delta2 <- TRUE
 palancas$lag3   <- FALSE
 palancas$delta3 <- FALSE
-palancas$lag4   <- FALSE
-palancas$delta4 <- FALSE
+palancas$lag4   <- TRUE
+palancas$delta4 <- TRUE
 palancas$lag5   <- FALSE
 palancas$delta5 <- FALSE
 palancas$lag6   <- FALSE
 palancas$delta6 <- FALSE
 
-palancas$promedio3  <- FALSE  #promedio  de los ultimos 3 meses
+palancas$promedio3  <- TRUE  #promedio  de los ultimos 3 meses
 palancas$promedio6  <- FALSE
 
-palancas$minimo3  <- FALSE  #minimo de los ultimos 3 meses
+palancas$minimo3  <- TRUE  #minimo de los ultimos 3 meses
 palancas$minimo6  <- FALSE
 
 palancas$maximo3  <- FALSE  #maximo de los ultimos 3 meses
@@ -790,7 +790,7 @@ CanaritosImportancia  <- function( dataset )
 #------------------------------------------------------------------------------
 
 #cargo el dataset ORIGINAL
-dataset  <- fread( "./datasetsOri/paquete_premium.csv.gz")
+#dataset  <- fread( "./datasetsOri/paquete_premium.csv.gz")
 
 
 correr_todo  <- function( palancas, dataset )
