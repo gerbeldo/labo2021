@@ -1,15 +1,16 @@
 # stacking 01
-
+library(data.table)
 data <- fread("~/buckets/b1/datasetsOri/paquete_premium.csv.gz")
 
-instance <- 1
+base_script_dir <- "~/labo2021/personal/stacking_exp/stacking_01"
 
-for (f in dir(paste0("~/labo2021/personal/stacking_exp/stacking_0", instance))) {
+
+for (f in dir(base_script_dir)) {
 
   dataset <- copy(data)
   
   # source dataset generation script
-  source(f)
+  source(paste0(base_script_dir, "/", f))
 
   # generate dataset
   correr_todo(palancas, dataset)

@@ -5,7 +5,7 @@
 
 
 #limpio la memoria
-rm( list=ls() )  #remove all objects
+#rm( list=ls() )  #remove all objects
 gc()             #garbage collection
 
 require("data.table")
@@ -17,8 +17,8 @@ require("lightgbm")
 
 
 #defino la carpeta donde trabajo
-#directory.root  <-  "~/buckets/b1/"  #Google Cloud
-directory.root <- "~/code/austral/labo1/"
+directory.root  <-  "~/buckets/b1/"  #Google Cloud
+#directory.root <- "~/code/austral/labo1/"
 setwd( directory.root )
 
 palancas  <- list()  #variable con las palancas para activar/desactivar
