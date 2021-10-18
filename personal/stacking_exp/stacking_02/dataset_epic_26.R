@@ -13,7 +13,7 @@ require("Rcpp")
 require("rlist")
 require("yaml")
 
-#require("lightgbm")
+require("lightgbm")
 
 
 #defino la carpeta donde trabajo
@@ -253,8 +253,8 @@ Corregir  <- function( dataset )
 AgregarVariables  <- function( dataset )
 {
   # cargo dataset pre-calculado con cotizacion promedio del dolar mensual
-  #dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
-  dolar <- fread("~/code/austral/labo1/labo2021/personal/mean_cotizacion_dolar_historica.csv")
+  dolar <- fread("~/labo2021/personal/mean_cotizacion_dolar_historica.csv")
+  #dolar <- fread("~/code/austral/labo1/labo2021/personal/mean_cotizacion_dolar_historica.csv")
   # # tomo variables en pesos
   vars_pesos <- c(
     "mrentabilidad",
