@@ -1,0 +1,82 @@
+---
+title: "title"
+author: "author"
+output:
+  html_document:
+    df_print: paged
+    highlight: kate
+    theme:
+      version: 4
+      code_font: 
+        google: JetBrains Mono
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+file_patt <- "*BOlog.txt$"
+exp_patt <- "^E[:digit:]{4}"
+
+f_path_test <- "~/code/austral/work/E1009/E1009_822_epic_BOlog.txt"
+
+d <- read_delim("~/code/austral/work/E1001/E1001_751_lgb_bin2_histcorregido_BOlog.txt")
+```
+
+# functions
+
+```{r}
+read_log <- function(file_path) {
+  # given a path to the log, reads log file, extracts important vars
+  tab <- read_delim(file_path, show_col_types = F)
+  exp_code <- str_match(basename(file_path), "^E[:digit:]{4}")[1]
+  script_n <- substr(str_match(basename(file_path), "_[:digit:]{3}_")[1], start = 2, stop = 4)
+  
+  tab %>%
+    mutate(exp_code = exp_code,
+           script_n = script_n) %>%
+    select(exp_code, ganancia, iteracion_bayesiana, script_n)
+}
+```
+
+
+```{r}
+
+work_path <- "~/code/austral/work/"
+
+bind_logs <- function(work_path, log_pattern = "*BOlog.txt$") {
+  lf <- list.files(work_path, pattern = file_patt, recursive = T)
+  
+  lista <- list()
+  
+  for (f in lf) {
+    y <- read_log(paste0(work_path, f))
+    lista <- append(lista, list(y))
+  }
+  
+  
+ bind_rows(lista)
+}
+
+```
+
+# analysis
+
+
+# table generation
+```{r}
+d <- bind_logs("~/code/austral/work/")
+```
+
+```{r}
+d %>% mutate(exp_number = substr(exp_code, 2, stop = 5)) %>% 
+  filter(exp_number > 1007) %>% 
+  
+  ggplot(aes(exp_code, ganancia)) + geom_boxplot()
+```
+
