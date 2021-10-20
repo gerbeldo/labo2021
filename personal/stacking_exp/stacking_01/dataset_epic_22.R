@@ -443,30 +443,30 @@ AgregarVariables  <- function( dataset )
     "Visa_mpagospesos"
   )
   
-  # important_vars <- c(
-  #   "ctrx_quarter",
-  #   "mcuentas_saldo",
-  #   "ctarjeta_visa_transacciones",
-  #   "Visa_msaldopesos",
-  #   "mpayroll",
-  #   "mtarjeta_visa_consumo",
-  #   "mcaja_ahorro",
-  #   "mcuenta_corriente",
-  #   "cpayroll_trx",
-  #   "mprestamos_personales",
-  #   "mactivos_margen",
-  #   "ctarjeta_debito_transacciones",
-  #   "mrentabilidad",
-  #   "mautoservicio",
-  #   "Visa_mconsumospesos",
-  #   "mrentabilidad_annual",
-  #   "Visa_mfinanciacion_limite",
-  #   "Master_mfinanciacion_limite",
-  #   "cliente_antiguedad",
-  #   "mcomisiones",
-  #   "mdescubierto_preacordado",
-  #   "Visa_mpagospesos"
-  # )
+  important_vars <- c(
+    "ctrx_quarter",
+    "mcuentas_saldo",
+    "ctarjeta_visa_transacciones",
+    "Visa_msaldopesos",
+    "mpayroll",
+    "mtarjeta_visa_consumo",
+    "mcaja_ahorro",
+    "mcuenta_corriente",
+    "cpayroll_trx",
+    "mprestamos_personales",
+    "mactivos_margen",
+    "ctarjeta_debito_transacciones",
+    "mrentabilidad",
+    "mautoservicio",
+    "Visa_mconsumospesos",
+    "mrentabilidad_annual",
+    "Visa_mfinanciacion_limite",
+    "Master_mfinanciacion_limite",
+    "cliente_antiguedad",
+    "mcomisiones",
+    "mdescubierto_preacordado",
+    "Visa_mpagospesos"
+  )
 
   # creo nombres de las variables ratio
   ratio_names <- create_ratio_names(dataset, important_vars)
@@ -875,3 +875,23 @@ correr_todo  <- function( palancas, dataset )
 
 
 #quit( save="no" )
+
+dnorm <- paste0("dolar_norm_", important_vars)
+
+cvars <- c("ctrx_quarter",
+           "ctarjeta_visa_transacciones",
+           "cpayroll_trx",
+           "ctarjeta_debito_transacciones",
+           "cliente_antiguedad",
+           "cliente_edad")
+
+
+imp_vars <- important_vars[-c(1, 3, 9, 12, 19)]
+
+imp_vars <- paste0("dolar_norm_", imp_vars)
+
+fvars <- c(cvars, imp_vars)
+dataset[, ..fvars]
+
+fwrite(dataset[, ..fvars], file = "~/buckets/b1/datasets/small_dataset.csv.gz")
+
